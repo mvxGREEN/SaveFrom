@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    // App Theme
+    <color name="colorPrimary">@color/colorWhite</color>
+    <color name="colorPrimaryDark">@color/colorBlack</color>
+    <color name="colorAccent">@color/mvxPink</color>
+
+    // General
+    <color name="colorWhite">#ffffff</color>
+    <color name="colorBlack">#000000</color>
+    <color name="colorGray">#A3A3A3</color>
+    <color name="colorDarkerGray">#333333</color>
+    <color name="neonOrange">#FF5F1F</color>
+    <color name="complimentaryDark">#00161f</color>
+    <color name="complimentaryDarker">#00080b</color>
+
+    // Shadows
+    <color name="shadowInvisible">#00FFFFFF</color>
+    <color name="shadow">#69000000</color>
+    <color name="shadowDark">#83000000</color>
+    <color name="shadowDarker">#A9000000</color>
+    <color name="shadowInverseLight">#43ffffff</color>
+    <color name="shadowInverse">#93ffffff</color>
+    <color name="shadowInverseDark">#C4ffffff</color>
+
+    // mvx
+    <color name="mvxPink">#FF9999</color>
+    <color name="mvxPinkShadowLight">#D3FFADAD</color>
+</resources>

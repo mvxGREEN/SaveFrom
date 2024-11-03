@@ -1,0 +1,122 @@
+<resources>
+    // app
+    <string name="app_name" translatable="false">ULoader</string>
+    <string name="app_name_official" translatable="false">ULoader Video Downloader</string>
+    <string name="app_version" translatable="false">Version 1.0.1</string>
+    <string name="app_copyright" translatable="false">\u00A9 2021 mvxGREEN</string>
+    <string name="mvxgreen_email" translatable="false">mvxgreen@gmail.com</string>
+    // urls
+    <string name="hint_searchbar_url" translatable="false">https://on.sound…</string>
+    <string name="frag_hint_valid_urls" translatable="false"><i>Supported URLs:
+    \n\u2022 https://on.sound…/song
+    \n\u2022 https://examp.le…/song.mp3</i></string>
+    <string name="mp3_sample_url" translatable="false">
+        https://github.com/rafaelreis-hotmart/Audio-Sample-files/raw/master/sample.mp3</string>
+    // keys
+    <string name="prefs_file_name" translatable="false">ULOADER_PREFS</string>
+    <string name="prefs_key_download_url" translatable="false">DOWNLOAD_URL</string>
+    <string name="prefs_key_folder" translatable="false">FOLDER_NAME</string>
+    <string name="prefs_key_filename" translatable="false">FILE_NAME</string>
+    <string name="prefs_key_file_ext" translatable="false">FILE_EXTENSION</string>
+    <string name="key_extra_abs_filepath" translatable="false">ABSOLUTE_FILE_PATH</string>
+    <string name="prefs_key_conversions" translatable="false">TOTAL_CONVERSIONS</string>
+    <string name="prefs_key_runs" translatable="false">TOTAL_RUNS</string>
+    <string name="key_extra_view_id" translatable="false">VIEW_ID</string>
+    <string name="key_extra_menu_item_title" translatable="false">MENU_ITEM_TITLE</string>
+    <string name="key_content_filepath" translatable="false">content_filepath</string>
+    // content descriptions
+    <string name="cont_desc_preview" translatable="false">preview of media to be downloaded</string>
+    <string name="cont_desc_logo" translatable="false">app logo</string>
+    <string name="cont_desc_online_icon" translatable="false">button to open pp in browser</string>
+    <string name="cont_desc_download_btn" translatable="false">download button</string>
+    <string name="cont_desc_close" translatable="false">close button</string>
+    <string name="cont_desc_player_control_btn" translatable="false">play button</string>
+
+    // messages
+    <string name="msg_unsupported">Unsupported URL</string>
+    <string name="msg_contact">Issue? Suggestion? Lonely?</string>
+    <string name="msg_downloaded_song">File saved to device</string>
+    <string name="msg_no_internet">Please connect to the internet</string>
+    <string name="msg_open_file">Open file…</string>
+    <string name="msg_downloading">Downloading…</string>
+    <string name="msg_no_url_copied">No URL to paste…</string>
+    <string name="msg_downloading_sample">Downloading sample…</string>
+
+    // hints
+    <string name="hint_main">Paste URL</string>
+    <string name="hint_filename"><i>file name…</i></string>
+    <string name="frag_hint_step_1"><b>① Copy song URL</b></string>
+    <string name="frag_hint_step_2"><b>② Paste URL, or tap ↑ button</b></string>
+    <string name="frag_hint_step_3"><b>③ Tap ↓ button to download</b></string>
+
+    // menu items
+    <string name="title_menu_rate">Rate</string>
+    <string name="title_menu_pp">Privacy Policy</string>
+    <string name="title_menu_about">About</string>
+    <string name="title_menu_help">Help</string>
+    <string name="title_menu_pro">Pro Version</string>
+    <string name="title_privacy_settings">Privacy Settings</string>
+
+    // ad text
+    <string name="msg_rate_button1">Rate Me</string>
+    <string name="msg_rate_button2">No</string>
+    <string name="ad_btn_positive">Show Me</string>
+    <string name="ad_btn_negative">No</string>
+    <string name="msg_rate_dialog_title">RATE ME :)</string>
+    <string name="msg_rate_dialog_body"><![CDATA[
+            Enjoying the app?\nLet me know!\n\n-MaxGreen
+        ]]></string>
+    <string name="ad_title_soundloader_pro" translatable="false"><b>SOUNDLOADER PRO</b></string>
+    <string name="ad_body_soundloader_pro"><![CDATA[
+            \nPlaylist Downloader
+            \n\nAd by MaxGreen\n
+        ]]></string>
+    <string name="ad_title_spotiflyer" translatable="false"><b>SPOTIFY DOWNLOADER</b></string>
+    <string name="ad_body_spotiflyer" translatable="false"><![CDATA[
+            \n\nAd by MaxGreen\n
+        ]]>
+    </string>
+    <string name="prefs_key_original_url">ORIGINAL_URL</string>
+    <string name="prefs_key_title">VIDEO_TITLE</string>
+    <string name="prefs_key_thumbnail_url">THUMBNAIL_URL</string>
+
+    // privacy policy
+    <string-array name="pp_body" translatable="false">
+        <item><![CDATA[\nPrivacy Policy
+       \nI, MaxGreen, built the SoundLoader service as free mobile application.  This service is offered at no cost, and is intended for use as is.
+       \nThe following policy applies to all apps built by MaxGreen, unless otherwise specified.  This policy is provided to inform users of my practices regarding collection, use, and disclosure of data collected by my downloader services.
+       \nIf you choose to use my service, you agree to the collection and use of information expressed in this policy.
+       \n\n\nInformation Collection, Use, and Third Parties
+       \nSoundLoader collects NO PERSONALLY IDENTIFIABLE INFORMATION!
+       \nHowever, in order to continually improve the in-app experience, some non-personal data is collected using third party services listed below.  Third parties may, or may not, collect undisclosed information for their own purposes…  Sorry, it is the creepy truth.  I can, however, assure my users that I collect NO personally-identifiable information or data.  I actively seek to restrict the flow of my users\' information to third parties.  Below, you can find the list of third parties I do allow to collect data on my behalf.  Privacy Policies for these third parties listed can be accessed using the links provided at the bottom of this page.
+       \n\nGoogle Firebase
+       \n\nUtilizing the aforementioned Third Parties, I may collect the anonymous information to better understand the needs of my audience.  This audience data includes, but may not be limited to, device specifications, operating system specifications, country, city, language, app version, and event data [more on this below].
+	   \n\nLog [Event] Data
+       \n\nUtilizing the aforementioned Third Parties, I may collect event data logged by your device (aka. log data) to assist in identifying and ultimately solving bugs and/or outages.  This data is collected through Firebase Crashlytics, and may include information such as hardware [device] specifications, operating system specifications, the configuration of the app when the event occurred, the time and date of the event, and/or other data points that may assist us in identifying the source of an issue.
+       \n\n\nCookies
+       \n\nCookies are files with a small amount of data that are commonly used as anonymous unique identifiers.  These are sent to your browser from the websites that you visit and are stored on your device\'s internal memory.  My services do not use these \“cookies\” explicitly.  However, usage of my services may indirectly expose the user to third party sites which use \“cookies\” to collect information to improve their services.
+       \n\n\nService Providers
+       \n\nI may employ third-party companies and individuals due to the following reasons:
+       \n\nTo perform data collection and storage on behalf of MaxGreen;
+       \nTo provide the Service on our behalf;
+       \nTo provide security for data collection;
+       \nTo assist in analysis of collected data.
+       \n\nBy virtue of their roles in data collection, these third parties have access to information collected on behalf of MaxGreen. However, they are legally prohibited from disclosing or using said information for any other purpose.
+       \n\n\nSecurity
+       \n\nI strive to protect the data you entrust in me with industry-standard safety practices.  However, no method of data transmission or storage is 100% safe.  Thus, I cannot fully guarantee the security of your data.
+       \n\n\nLinks to Other Sites
+       \n\nThis service contains links to other sites.  These external sites are not operated by me.  Therefore, I strongly advise you to review the Privacy Policy of these websites.  I have no control over and assume no responsibility for the content, privacy policies, or practices of any third-party sites or services.
+       \n\n\nChildren\'s Privacy
+       \n\nThis policy does not address anyone under the age of 13.  I do not knowingly collect information from children under 13.  Should I discover that a child under 13 has provided me with information, I will immediately delete the concerning data from our servers. If you are a parent or guardian and you are aware that your child has provided us with information, please contact us as soon as possible so we can resolve the situation.
+       \n\n\nChanges to This Privacy Policy
+       \n\nI may update this Privacy Policy on occasion, without notice.  Thus, please review this page periodically if you are concerned.
+       \n\nThis policy is effective as of 08/16/2021.
+       \n\n\nContact Us
+       \n\nPlease do not hesitate to reach out with any comments, questions, concerns, or if you have the recipe for a good peach cobbler.  Thanks!
+       \n~MaxGreen
+       \n\nmvxgreen @ gmail . com
+       \n\nhttps://firebase.google.com/support/privacy
+        ]]></item>
+    </string-array>
+
+</resources>

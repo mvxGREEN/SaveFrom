@@ -1,0 +1,95 @@
+plugins {
+    id 'com.android.application'
+    id 'com.chaquo.python'
+}
+
+android {
+    namespace 'com.mvxgreen.ytdloader'
+    compileSdk 34
+
+    defaultConfig {
+        applicationId "com.mvxgreen.ytdloader"
+        minSdk 24
+        targetSdk 34
+        versionCode 1
+        versionName "1.0"
+
+        testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
+
+        ndk {
+            abiFilters "armeabi-v7a", "arm64-v8a", "x86", "x86_64"
+        }
+
+        buildConfigField "String", "API_KEY", "\"${API_KEY}\""
+
+        sourceSets{
+            main{
+                python {
+                    srcDirs = ["src/main/python"]
+                }
+            }
+        }
+
+        python {
+            buildPython "C:/Users/maxwe/AppData/Local/Programs/Python/Python39/python.exe"
+        }
+
+        python{
+            pip{
+                install "yt_dlp"
+            }
+        }
+
+        signingConfig signingConfigs.debug
+    }
+
+    buildTypes {
+        release {
+            minifyEnabled false
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+        }
+    }
+    buildFeatures {
+        viewBinding true
+    }
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_1_8
+        targetCompatibility JavaVersion.VERSION_1_8
+    }
+}
+
+dependencies {
+// general
+    implementation fileTree(dir: "libs", include: ["*.jar"])
+    implementation 'androidx.appcompat:appcompat:1.7.0'
+    testImplementation 'junit:junit:4.13.2'
+    androidTestImplementation 'androidx.test.ext:junit:1.2.1'
+    androidTestImplementation 'androidx.test.espresso:espresso-core:3.6.1'
+
+    // views / ui
+    implementation 'androidx.constraintlayout:constraintlayout:2.1.4'
+    implementation 'com.google.android.material:material:1.12.0'
+    implementation 'com.squareup.picasso:picasso:2.71828'
+    implementation 'com.github.varunest:TheGlowingLoader:1.0.7'
+    implementation 'com.github.mancj:MaterialSearchBar:0.8.5'
+    implementation 'com.daimajia.numberprogressbar:library:1.4@aar'
+    implementation 'pl.droidsonroids.gif:android-gif-drawable:1.2.23'
+
+    // html
+    implementation 'org.jsoup:jsoup:1.13.1'
+
+    // ffmpeg
+    implementation 'com.arthenica:mobile-ffmpeg-min:4.4'
+
+    /* BoM for the Firebase platform
+    implementation platform('com.google.firebase:firebase-bom:33.2.0')
+    implementation 'com.google.firebase:firebase-analytics'
+    implementation 'com.google.firebase:firebase-crashlytics'
+
+    // admob
+    implementation 'com.google.android.gms:play-services-ads:23.3.0'
+
+    // ump
+    implementation("com.google.android.ump:user-messaging-platform:3.0.0")
+    */
+}
