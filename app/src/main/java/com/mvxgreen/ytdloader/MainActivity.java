@@ -439,6 +439,7 @@ public class MainActivity extends AppCompatActivity {
         mBinding.btnDownload.setEnabled(false);
         mBinding.btnPaste.setVisibility(View.VISIBLE);
         mBinding.btnPaste.setEnabled(true);
+        mBinding.ivCircle.setVisibility(View.VISIBLE);
         mBinding.numProgress.setVisibility(View.GONE);
         mBinding.numProgress.setProgress(0);
         mBinding.mainScroll.smoothScrollTo(0, mBinding.mainScroll.getBottom());
@@ -480,16 +481,28 @@ public class MainActivity extends AppCompatActivity {
 
         // extract video information
 
-        PyObject title = pyObject.callAttr("extract_video_title", url);
-        titleStr = title.toString();
-        if (titleStr.length() > 25) {
-            titleStr = titleStr.substring(0, 25);
+        try {
+            PyObject title = pyObject.callAttr("extract_video_title", url);
+            titleStr = title.toString();
+            if (titleStr.length() > 25) {
+                titleStr = titleStr.substring(0, 25);
+            }
+
+            PyObject thumbnail = pyObject.callAttr("extract_video_thumbnail", url);
+            thumbStr = thumbnail.toString();
+            PyObject ext = pyObject.callAttr("extract_video_ext", url);
+            extStr = ext.toString();
+        } catch (Exception e) {
+            Log.e(TAG, e.toString());
+
+            runOnUiThread(() -> {
+                Toast.makeText(MainActivity.this, "Unsupported URL", Toast.LENGTH_SHORT).show();
+                showEmptyLayout();
+            });
+
+            return;
         }
 
-        PyObject thumbnail = pyObject.callAttr("extract_video_thumbnail", url);
-        thumbStr = thumbnail.toString();
-        PyObject ext = pyObject.callAttr("extract_video_ext", url);
-        extStr = ext.toString();
 
         Log.i(TAG, "Extracted video info: "
                 + "filename: " + titleStr + "\n"

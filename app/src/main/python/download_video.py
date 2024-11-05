@@ -3,7 +3,7 @@ import yt_dlp
 def download_video(video_url, out):
     # 'outtmpl': out + '%(title)s.%(ext)s',
     ydl_opts = {
-        'format': "bestvideo",
+        #'format': "bestvideo",
         'outtmpl': out + '%(title).25s.%(ext)s'
     }
     with yt_dlp.YoutubeDL(ydl_opts) as ydl:
@@ -12,7 +12,7 @@ def download_video(video_url, out):
 
 def extract_video_title(video_url):
     ydl_opts = {
-        'format': "bestvideo",
+        #'format': "bestvideo",
     }
     with yt_dlp.YoutubeDL(ydl_opts) as ydl:
         info_dict = ydl.extract_info(video_url, download=False)
@@ -20,7 +20,7 @@ def extract_video_title(video_url):
 
 def extract_video_ext(video_url):
     ydl_opts = {
-        'format': "bestvideo",
+        #'format': "bestvideo",
     }
     with yt_dlp.YoutubeDL(ydl_opts) as ydl:
         info_dict = ydl.extract_info(video_url, download=False)
@@ -28,7 +28,7 @@ def extract_video_ext(video_url):
 
 def extract_video_dl_url(video_url):
     ydl_opts = {
-        'format': "bestvideo",
+        #'format': "bestvideo",
     }
     with yt_dlp.YoutubeDL(ydl_opts) as ydl:
         info_dict = ydl.extract_info(video_url, download=False)
@@ -36,7 +36,7 @@ def extract_video_dl_url(video_url):
 
 def extract_video_thumbnail(video_url):
     ydl_opts = {
-        'format': "bestvideo",
+        #'format': "bestvideo",
     }
     with yt_dlp.YoutubeDL(ydl_opts) as ydl:
         info_dict = ydl.extract_info(video_url, download=False)
