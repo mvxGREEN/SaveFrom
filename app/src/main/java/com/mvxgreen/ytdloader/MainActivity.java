@@ -29,6 +29,7 @@ import android.webkit.WebResourceRequest;
 import android.widget.Toast;
 
 import androidx.activity.EdgeToEdge;
+import androidx.annotation.NonNull;
 import androidx.annotation.RequiresApi;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.Toolbar;
@@ -54,11 +55,17 @@ import java.net.URLEncoder;
 import java.nio.charset.Charset;
 import java.nio.file.Files;
 import java.nio.file.attribute.FileTime;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
 
 import kotlin.text.Charsets;
 import okhttp3.Call;
+import okhttp3.Cookie;
+import okhttp3.CookieJar;
 import okhttp3.FormBody;
 import okhttp3.Headers;
+import okhttp3.HttpUrl;
 import okhttp3.OkHttpClient;
 import okhttp3.Request;
 import okhttp3.RequestBody;
@@ -430,6 +437,8 @@ public class MainActivity extends AppCompatActivity {
         mBinding.imgPreview.setAlpha(1.0f);
         mBinding.btnDownload.setVisibility(View.GONE);
         mBinding.btnDownload.setEnabled(false);
+        mBinding.btnPaste.setVisibility(View.VISIBLE);
+        mBinding.btnPaste.setEnabled(true);
         mBinding.numProgress.setVisibility(View.GONE);
         mBinding.numProgress.setProgress(0);
         mBinding.mainScroll.smoothScrollTo(0, mBinding.mainScroll.getBottom());
@@ -464,92 +473,28 @@ public class MainActivity extends AppCompatActivity {
         String titleStr = "", extStr = "", thumbStr ="";
         String getUrl = "https://www.tubeninja.net/welcome?url={url}", postUrl = "https://www.tubeninja.net/get";
 
-        if (url.contains("youtu.be")) {
-            // run async
-            //calling python function with it's object to extract audio
-            Python py = Python.getInstance();
-            PyObject pyObject = py.getModule("download_video");
+        // run async
+        //calling python function with it's object to extract audio
+        Python py = Python.getInstance();
+        PyObject pyObject = py.getModule("download_video");
 
-            // extract video information
+        // extract video information
 
-            PyObject title = pyObject.callAttr("extract_video_title", url);
-            titleStr = title.toString();
+        PyObject title = pyObject.callAttr("extract_video_title", url);
+        titleStr = title.toString();
+        if (titleStr.length() > 25) {
             titleStr = titleStr.substring(0, 25);
-            PyObject thumbnail = pyObject.callAttr("extract_video_thumbnail", url);
-            thumbStr = thumbnail.toString();
-            PyObject ext = pyObject.callAttr("extract_video_ext", url);
-            extStr = ext.toString();
-
-            Log.i(TAG, "Extracted video info: "
-                    + "filename: " + titleStr + "\n"
-                    + "ext: " + extStr + "\n"
-                    + "thumbnail url: " + thumbStr);
-
-        } else {
-            //WebResourceRequest request;
-            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {
-                try {
-                    encodedUrl = URLEncoder.encode(url, Charsets.UTF_8.name());
-                } catch (UnsupportedEncodingException e) {
-                    throw new RuntimeException(e);
-                }
-            }
-
-            OkHttpClient okHttpClient = new OkHttpClient();
-            final Call call = okHttpClient.newCall(new Request.Builder()
-                    .url(getUrl.replace("{url}", encodedUrl))
-                    .get()
-                    //.headers(Headers.of(request.getRequestHeaders()))
-                    .build()
-            );
-            try {
-                final Response response = call.execute();
-                assert response.body() != null;
-                String document = response.body().string();
-
-                printLongLog(document);
-
-                // extract token
-                String token_flag = "csrfmiddlewaretoken";
-                if (document.contains(token_flag)) {
-                    Log.i(TAG, "found token");
-                    String tok = document.substring(document.indexOf(token_flag)+token_flag.length()+1);
-                    tok = tok.substring(tok.indexOf('\'')+1);
-                    tok = tok.substring(0, tok.indexOf('\''));
-                    Log.i(TAG, "extracted token: " + tok);
-                    mPrefsManager.setToken(tok);
-                }
-
-                response.close();
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-
-            RequestBody formBody = new FormBody.Builder()
-                    .add("url", url)
-                    .add("csrfmiddlewaretoken", mPrefsManager.getToken())
-                    .build();
-            final Call callPost = okHttpClient.newCall(new Request.Builder()
-                    .url(postUrl)
-                    .post(formBody)
-                    //.headers(Headers.of(request.getRequestHeaders()))
-                    .build()
-            );
-            try {
-                final Response response = callPost.execute();
-                assert response.body() != null;
-                String document = response.body().string();
-
-                printLongLog(document);
-
-                response.close();
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-
         }
 
+        PyObject thumbnail = pyObject.callAttr("extract_video_thumbnail", url);
+        thumbStr = thumbnail.toString();
+        PyObject ext = pyObject.callAttr("extract_video_ext", url);
+        extStr = ext.toString();
 
+        Log.i(TAG, "Extracted video info: "
+                + "filename: " + titleStr + "\n"
+                + "ext: " + extStr + "\n"
+                + "thumbnail url: " + thumbStr);
 
         mPrefsManager.setFileName(titleStr);
         mPrefsManager.setThumbnailUrl(thumbStr);
