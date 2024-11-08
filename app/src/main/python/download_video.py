@@ -3,11 +3,11 @@ from com.chaquo.python import Python
 from com.mvxgreen.ytdloader import MainActivity
 
 def download_video(activity, video_url, out):
-    # 'outtmpl': out + '%(title)s.%(ext)s',
+    # 'outtmpl': out + '%(title).25s.%(ext)s',
     progress_hook = create_progress_hook(activity)
     ydl_opts = {
         #'format': "bestvideo",
-        'outtmpl': out + '%(title).25s.%(ext)s',
+        'outtmpl': out + '%(title).25s.mp4',
         'progress_hooks': [progress_hook]
     }
     with yt_dlp.YoutubeDL(ydl_opts) as ydl:

@@ -139,22 +139,6 @@ public class PrefsManager {
         editor.apply();
     }
 
-    public void setToken (String value) {
-        String key = "TOKEN";
-        Log.i(TAG, "set " + key + " in shared prefs: {" + key + "," + value + "}");
-
-        SharedPreferences.Editor editor = sharedPrefs.edit();
-        editor.putString(
-                key,
-                value
-        );
-        editor.apply();
-    }
-
-    public String getToken() {
-        return sharedPrefs.getString("TOKEN", "");
-    }
-
     /**
      * Set filename for downloaded file
      * @param value file name

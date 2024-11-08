@@ -174,11 +174,22 @@ public class MainActivity extends AppCompatActivity {
                     showEmptyLayout();
                 } else if (count - oldCount > 1) {
                     // text pasted
-                    killKeyboard();
-                    showLoadingLayout();
+
 
                     // get input
                     String inputText = s.toString().trim();
+
+                    /*
+                    if (inputText.contains("youtu.be") || inputText.contains("youtube.com")) {
+                        Toast.makeText(MainActivity.this, "Youtube URLs not supported :(", Toast.LENGTH_SHORT).show();
+                        showEmptyLayout();
+                        return;
+                    }
+                    *
+                     */
+
+                    killKeyboard();
+                    showLoadingLayout();
 
                     // check for internet & valid url
                     if (isInternetAvailable()) {
@@ -455,6 +466,9 @@ public class MainActivity extends AppCompatActivity {
 
     private void showFinishLayout() {
         Log.i(TAG, "showFinishLayout()");
+
+        showFileFrag();
+
         mBinding.ivCircle.setVisibility(View.GONE);
         mBinding.glowingLoader.setVisibility(View.GONE);
         mBinding.imgPreview.setAlpha(1.0f);
@@ -511,8 +525,9 @@ public class MainActivity extends AppCompatActivity {
 
             PyObject thumbnail = pyObject.callAttr("extract_video_thumbnail", url);
             thumbStr = thumbnail.toString();
-            PyObject ext = pyObject.callAttr("extract_video_ext", url);
-            extStr = ext.toString();
+            //PyObject ext = pyObject.callAttr("extract_video_ext", url);
+            //extStr = ext.toString();
+            extStr = "mp4";
         } catch (Exception e) {
             Log.e(TAG, e.toString());
 

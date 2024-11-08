@@ -6,10 +6,9 @@
     <string name="app_copyright" translatable="false">\u00A9 2021 mvxGREEN</string>
     <string name="mvxgreen_email" translatable="false">mvxgreen@gmail.com</string>
     // urls
-    <string name="hint_searchbar_url" translatable="false">https://exam.ple…</string>
+    <string name="hint_searchbar_url" translatable="false">https://example.com…/video</string>
     <string name="frag_hint_valid_urls" translatable="false"><i>Supported URLs:
-    \n\u2022 https://on.sound…/song
-    \n\u2022 https://examp.le…/song.mp3</i></string>
+    \n\u2022 https://example.com…/video</i></string>
     <string name="mp3_sample_url" translatable="false">
         https://github.com/rafaelreis-hotmart/Audio-Sample-files/raw/master/sample.mp3</string>
     // keys

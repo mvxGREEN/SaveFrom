@@ -38,7 +38,9 @@ public class FileFragment extends Fragment {
     Intent viewFileIntent;
     String fileName, fileSubtitle;
     MediaPlayer mediaPlayer;
-    final String MIME_MP3 = "audio/mpeg";
+    final String MIME_MP3 = "audio/mpeg",
+            MIME_VIDEO = "video/*",
+            MIME_MP4 = "video/mp4";
 
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater,
@@ -47,34 +49,18 @@ public class FileFragment extends Fragment {
         String absFilePath = getArguments() != null ?
                 getArguments().getString(getString(R.string.key_extra_abs_filepath), "")
                 : "";
-        File song = new File(absFilePath);
+        File video = new File(absFilePath);
         Uri uri = FileProvider.getUriForFile(
                 container.getContext(),
                 ctx.getApplicationContext()
-                        .getPackageName() + ".provider", song);
+                        .getPackageName() + ".provider", video);
 
         fileName = absFilePath.substring(absFilePath.lastIndexOf('/')+1);
         fileSubtitle = absFilePath;
 
-        // create media player
-        mediaPlayer = new MediaPlayer();
-        mediaPlayer.setAudioAttributes(
-                new AudioAttributes.Builder()
-                        .setContentType(AudioAttributes.CONTENT_TYPE_MUSIC)
-                        .setUsage(AudioAttributes.USAGE_MEDIA)
-                        .build()
-        );
-
-        try {
-            mediaPlayer.setDataSource(ctx, uri);
-            mediaPlayer.prepare();
-        } catch (Exception e) {
-            Log.e(TAG, "Failed to set mediaplayer source");
-        }
-
         viewFileIntent = new Intent();
         viewFileIntent.setAction(Intent.ACTION_VIEW);
-        viewFileIntent.setDataAndType(uri, MIME_MP3);
+        viewFileIntent.setDataAndType(uri, MIME_VIDEO);
         viewFileIntent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
 
         // Check menu item id; inflate proper fragment
