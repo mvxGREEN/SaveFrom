@@ -40,6 +40,14 @@ android {
             }
         }
 
+        /*
+        python{
+            pip{
+                install "ffmpeg"
+            }
+        }
+        */
+
         signingConfig signingConfigs.debug
     }
 

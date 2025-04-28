@@ -184,10 +184,6 @@ public class MainActivity extends AppCompatActivity {
                 } else if (count - oldCount > 1) {
                     String input = s.toString();
 
-                    // replace vimeo URL with vimeo player url
-                    if (input.contains("https://vimeo.com/")) {
-                        input = input.replace("https://vimeo.com/", "https://player.vimeo.com/video/");
-                    }
 
                     // get input
                     final String inputText = input;
