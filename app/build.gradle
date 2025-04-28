@@ -79,7 +79,7 @@ dependencies {
     implementation 'org.jsoup:jsoup:1.13.1'
 
     // ffmpeg
-    implementation 'com.arthenica:mobile-ffmpeg-min:4.4'
+    //implementation 'com.arthenica:mobile-ffmpeg-min:4.4'
 
     implementation("com.squareup.okhttp3:okhttp:4.10.0")
 

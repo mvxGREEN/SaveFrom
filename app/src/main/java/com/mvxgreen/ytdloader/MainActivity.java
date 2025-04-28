@@ -595,8 +595,9 @@ public class MainActivity extends AppCompatActivity {
             //now again calling the function to get the audio file url
             PyObject result = pyObject.callAttr("download_video",MainActivity.this, videoUrl, ABS_PATH_DOCS);
             String res = result.toString();
-            res = res.replace(" ", "_").replace("&","");
             Log.i(TAG, "video title: "+ res);
+            mPrefsManager.setFileName(res);
+            mPrefsManager.setVideoTitle(res);
 
             return result.toString();
         }
@@ -606,9 +607,9 @@ public class MainActivity extends AppCompatActivity {
             Log.i(TAG, "onPostExecute()\n" + s);
 
             // scan media
-            String title = mPrefsManager.getFileName();
+            //String title = mPrefsManager.getFileName();
             String ext = mPrefsManager.getFileExt();
-            String absFilePath = ABS_PATH_DOCS + title + "." + ext;
+            String absFilePath = ABS_PATH_DOCS + s + "." + ext;
             Log.i(TAG, "absolute filepath: " + absFilePath);
 
             File dl = new File(absFilePath);
