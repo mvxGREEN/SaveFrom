@@ -26,6 +26,7 @@ public class PrefsManager {
             R.string.prefs_key_title,
             R.string.prefs_key_thumbnail_url,
             R.string.prefs_key_token,
+            R.string.prefs_key_background_enabled
 
     };
 
@@ -82,6 +83,23 @@ public class PrefsManager {
     // ~~~~~~~~~~~~~~~~~~~~~~~~  GETTERS/SETTERS  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     public SharedPreferences getSharedPrefs() {
         return sharedPrefs;
+    }
+
+    public void setBackgroundEnabled(String value) {
+        String key = "BACKGROUND_ENABLED";
+
+        Log.i(TAG, "set " + key + " in shared prefs: {" + key + "," + value + "}");
+
+        SharedPreferences.Editor editor = sharedPrefs.edit();
+        editor.putString(
+                key,
+                value
+        );
+        editor.apply();
+    }
+
+    public String getBackgroundEnabled() {
+        return sharedPrefs.getString("BACKGROUND_ENABLED", "");
     }
 
     public void setFileName(String value) {

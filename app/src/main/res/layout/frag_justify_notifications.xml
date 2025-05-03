@@ -1,0 +1,78 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:padding="@dimen/spacing_med"
+    android:layout_marginVertical="16dp"
+    android:layout_marginHorizontal="8dp"
+    android:background="@color/shadowDark"
+    xmlns:app="http://schemas.android.com/apk/res-auto">
+    <ScrollView
+        android:id="@+id/pp_scroll"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        app:layout_constraintTop_toTopOf="parent"
+        android:orientation="vertical">
+
+        <!-- CONTENT -->
+        <androidx.constraintlayout.widget.ConstraintLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content">
+
+            <!-- FRAGMENT TITLE -->
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_margin="@dimen/spacing_med"
+                android:elevation="@dimen/spacing_small"
+                android:id="@+id/title"
+                android:text="Enable Notifications"
+                android:textColor="@color/colorPrimary"
+                android:textSize="20sp"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintTop_toTopOf="parent"/>
+            <ImageButton
+                android:id="@+id/btnExit"
+                android:layout_width="@dimen/size_imagebutton_peripheral"
+                android:layout_height="@dimen/size_imagebutton_peripheral"
+                android:layout_marginHorizontal="@dimen/spacing_large"
+                android:elevation="@dimen/spacing_med"
+                android:background="@drawable/ic_round_close_24"
+                android:contentDescription="@string/cont_desc_close"
+                android:onClick="closeBigFrag"
+                android:layout_margin="8dp"
+                app:layout_constraintTop_toTopOf="parent"
+                app:layout_constraintEnd_toEndOf="parent"/>
+
+            <!-- BODY -->
+            <TextView
+                android:id="@+id/frag_justify_body"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                app:layout_constraintStart_toStartOf="parent"
+                android:textAppearance="@style/TextAppFragBody"
+                android:text="Necessary for showing download progress in notifications."
+                app:layout_constraintTop_toBottomOf="@id/title"
+                android:layout_marginTop="24dp"
+                android:layout_marginHorizontal="8dp"/>
+
+            <!-- POSITIVE -->
+            <Button
+                android:id="@+id/frag_btn_ok"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                app:layout_constraintTop_toBottomOf="@id/frag_justify_body"
+                app:layout_constraintEnd_toEndOf="parent"
+                android:background="@color/shadowInverseDark"
+                android:text="OK"
+                android:textColor="@color/colorBlack"
+                android:layout_marginTop="24dp"
+                android:layout_marginHorizontal="8dp"
+                android:layout_marginBottom="8dp"
+                android:onClick="OnEnableNotifClicked"/>
+
+        </androidx.constraintlayout.widget.ConstraintLayout>
+
+    </ScrollView>
+
+</androidx.constraintlayout.widget.ConstraintLayout>

@@ -67,7 +67,7 @@
                     android:layout_width="match_parent"
                     android:layout_height="@dimen/height_search_bar"
                     android:elevation="@dimen/elevation_high"
-                    android:layout_marginHorizontal="@dimen/spacing_med"
+                    android:layout_margin="@dimen/spacing_med"
                     android:textAlignment="gravity"
                     app:mt_speechMode="false"
                     app:mt_maxSuggestionsCount="0"
@@ -280,20 +280,60 @@
                     android:layout_height="wrap_content"
                     android:id="@+id/file_hint_holder"
                     android:elevation="@dimen/elevation_top"
-                    android:layout_marginHorizontal="@dimen/spacing_med"
-                    android:layout_marginVertical="@dimen/spacing_small"
+                    android:layout_margin="@dimen/spacing_med"
                     android:background="@drawable/bg_rounded_black_stroke_inv"
                     app:layout_constraintStart_toStartOf="parent"
                     app:layout_constraintEnd_toEndOf="parent"
                     app:layout_constraintTop_toBottomOf="@id/preview_card"
                     android:visibility="gone"/>
 
+                <!-- PERMISSION HOLDER -->
+                <androidx.constraintlayout.widget.ConstraintLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:id="@+id/permission_holder"
+                    android:elevation="@dimen/elevation_top"
+                    android:paddingVertical="8dp"
+                    android:layout_marginHorizontal="@dimen/spacing_med"
+                    android:layout_margin="@dimen/spacing_med"
+                    android:background="@drawable/bg_rounded_black_stroke_inv"
+                    app:layout_constraintStart_toStartOf="parent"
+                    app:layout_constraintEnd_toEndOf="parent"
+                    app:layout_constraintTop_toBottomOf="@id/preview_card"
+                    android:visibility="gone">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        app:layout_constraintStart_toStartOf="parent"
+                        app:layout_constraintTop_toTopOf="parent"
+                        app:layout_constraintBottom_toBottomOf="parent"
+                        android:text="Run in background:"
+                        android:textColor="@color/shadowInverseDark"
+                        android:textSize="16sp"
+                        android:layout_marginVertical="8dp"
+                        android:layout_marginStart="16dp"/>
+
+                    <Button
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        app:layout_constraintEnd_toEndOf="parent"
+                        app:layout_constraintTop_toTopOf="parent"
+                        app:layout_constraintBottom_toBottomOf="parent"
+                        android:background="@color/shadowInverseDark"
+                        android:text="Enable"
+                        android:textColor="@color/shadowDarker"
+                        android:layout_margin="8dp"
+                        android:onClick="onEnableBackgroundClicked"/>
+
+                </androidx.constraintlayout.widget.ConstraintLayout>
+
             </LinearLayout>
 
             <!-- BIG FRAG -->
             <androidx.constraintlayout.widget.ConstraintLayout
-                android:layout_width="@dimen/width_fragment_large"
-                android:layout_height="@dimen/height_fragment_big"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
                 android:id="@+id/big_frag_holder"
                 android:elevation="@dimen/elevation_mid_high"
                 android:background="@drawable/bg_rounded_black_stroke_inv"
@@ -301,7 +341,8 @@
                 app:layout_constraintStart_toStartOf="parent"
                 app:layout_constraintEnd_toEndOf="parent"
                 app:layout_constraintTop_toTopOf="parent"
-                app:layout_constraintBottom_toBottomOf="parent"/>
+                app:layout_constraintBottom_toBottomOf="parent"
+                android:paddingBottom="16dp"/>
 
         </androidx.constraintlayout.widget.ConstraintLayout>
 

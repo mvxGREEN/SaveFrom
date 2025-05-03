@@ -78,6 +78,7 @@
     <string name="prefs_key_thumbnail_url">THUMBNAIL_URL</string>
     <string name="prefs_key_token">TOKEN</string>
     <string name="prefs_key_format_id">FORMAT_ID</string>
+    <string name="prefs_key_background_enabled">BACKGROUND_ENABLED</string>
 
     // privacy policy
     <string-array name="pp_body" translatable="false">

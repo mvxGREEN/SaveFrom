@@ -34,6 +34,8 @@ public class BigFragment extends Fragment {
         if (title.equals(getString(R.string.title_menu_pp))) {
             rootView = inflater.inflate(R.layout.frag_pp, container, false);
             fillPrivacyPolicy(rootView);
+        } else if (title.equals("Enable Notifications")) {
+            rootView = inflater.inflate(R.layout.frag_justify_notifications, container, false);
         } else {
             rootView = inflater.inflate(R.layout.frag_about, container, false);
         }

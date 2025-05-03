@@ -15,13 +15,14 @@ import android.content.ServiceConnection;
 import android.content.pm.PackageManager;
 import android.graphics.drawable.Animatable;
 import android.net.Uri;
-import android.os.AsyncTask;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Environment;
 import android.os.Handler;
 import android.os.IBinder;
+import android.os.PowerManager;
 import android.os.StrictMode;
+import android.provider.Settings;
 import android.text.Editable;
 import android.text.TextWatcher;
 import android.util.Log;
@@ -57,11 +58,7 @@ import com.mvxgreen.ytdloader.frag.FileFragment;
 import com.squareup.picasso.Callback;
 import com.squareup.picasso.Picasso;
 
-import java.io.File;
-import java.io.IOException;
 import java.net.InetAddress;
-import java.nio.file.Files;
-import java.nio.file.attribute.FileTime;
 
 public class MainActivity extends AppCompatActivity {
     private static final String TAG = MainActivity.class.getCanonicalName();
@@ -80,6 +77,8 @@ public class MainActivity extends AppCompatActivity {
 
     AndroidPlatform androidPlatform;
 
+    boolean isBackgroundEnabled = false;
+
     public MainActivity() {
         activityCurrent = this;
     }
@@ -97,8 +96,10 @@ public class MainActivity extends AppCompatActivity {
         StrictMode.ThreadPolicy policy = new StrictMode.ThreadPolicy.Builder().permitAll().build();
         StrictMode.setThreadPolicy(policy);
 
-        initMainViews();
         mPrefsManager = new PrefsManager(MainActivity.this);
+        isBackgroundEnabled = !(mPrefsManager.getBackgroundEnabled()).isEmpty();
+        Log.i(TAG, "isBackgroundEnabled="+isBackgroundEnabled);
+        initMainViews();
 
         if (!Python.isStarted()) {
             androidPlatform = new AndroidPlatform(this);
@@ -106,7 +107,7 @@ public class MainActivity extends AppCompatActivity {
         }
 
         // check permissions
-        hasPermissions();
+        hasStoragePermissions();
 
         // register receivers
         mFinishReceiver = new FinishReceiver();
@@ -115,6 +116,8 @@ public class MainActivity extends AppCompatActivity {
         } else {
             registerReceiver(mFinishReceiver, new IntentFilter("69"));
         }
+
+
     }
 
     @Override
@@ -140,7 +143,7 @@ public class MainActivity extends AppCompatActivity {
             Manifest.permission.POST_NOTIFICATIONS
     };
 
-    public static String[] permissions() {
+    public static String[] getStoragePermissions() {
         String[] p;
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             p = req_permissions;
@@ -149,7 +152,8 @@ public class MainActivity extends AppCompatActivity {
         }
         return p;
     }
-    private boolean hasPermissions() {
+
+    private boolean hasStoragePermissions() {
         if ((ActivityCompat.checkSelfPermission(
                 this, android.Manifest.permission.WRITE_EXTERNAL_STORAGE)
                 != PackageManager.PERMISSION_GRANTED)
@@ -157,8 +161,17 @@ public class MainActivity extends AppCompatActivity {
                 this, Manifest.permission.READ_MEDIA_AUDIO)
                 != PackageManager.PERMISSION_GRANTED)) {
             ActivityCompat.requestPermissions(MainActivity.this,
-                    permissions(),
+                    getStoragePermissions(),
                     1);
+            return false;
+        } else {
+            return true;
+        }
+    }
+
+    private boolean hasNotificationPermission() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU
+                && ActivityCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {
             return false;
         } else {
             return true;
@@ -242,6 +255,11 @@ public class MainActivity extends AppCompatActivity {
 
             }
         });
+
+        if (!isBackgroundEnabled) {
+            Log.i(TAG, "showing permission holder");
+            mBinding.permissionHolder.setVisibility(View.VISIBLE);
+        }
     }
 
     private void initAnimations() {
@@ -331,6 +349,25 @@ public class MainActivity extends AppCompatActivity {
                 .commitAllowingStateLoss();
     }
 
+    public void showBigFrag(String title) {
+        // bundle menu item title
+        Bundle extras = new Bundle();
+        extras.putString(getString(R.string.key_extra_menu_item_title), title);
+
+        // Create fragment, add extras
+        BigFragment bigFragment = new BigFragment();
+        bigFragment.setArguments(extras);
+
+        // Inflate fragment
+        ConstraintLayout fragView = this.findViewById(R.id.big_frag_holder);
+        fragView.removeAllViews();
+        fragView.setVisibility(View.VISIBLE);
+        getSupportFragmentManager().beginTransaction()
+                .setReorderingAllowed(true)
+                .add(R.id.big_frag_holder, bigFragment, null)
+                .commitAllowingStateLoss();
+    }
+
     /**
      * Hide fragment (holder)
      * @param v close button (clicked)
@@ -345,7 +382,7 @@ public class MainActivity extends AppCompatActivity {
         String fileExt = mPrefsManager.getFileExt();
         final String absPath = ABS_PATH_DOCS + fileName + "." + fileExt;
 
-        // Inflate fragment
+        // inflate fragment
         runOnUiThread(() -> {
             Bundle extras = new Bundle();
             extras.putString(getString(R.string.key_extra_abs_filepath), absPath);
@@ -375,8 +412,11 @@ public class MainActivity extends AppCompatActivity {
         fragHolder.setVisibility(View.GONE);
     }
 
+
+
+
     private void showEmptyLayout() {
-        Log.i(TAG, "showEmptyLayout()");
+        Log.i(TAG, "showEmptyLayout");
 
         closeFileFrag();
 
@@ -391,12 +431,17 @@ public class MainActivity extends AppCompatActivity {
         mBinding.filenameEdittext.setEnabled(false);
         mBinding.filenameEdittext.setHintTextColor(getColor(R.color.shadowInvisible));
         mBinding.filenameEdittext.setText("");
+        if (!isBackgroundEnabled) {
+            Log.i(TAG, "showing permission holder");
+            mBinding.permissionHolder.setVisibility(View.VISIBLE);
+        }
+
     }
 
     private void showLoadingLayout() {
         Log.i(TAG, "showLoadingLayout()");
 
-        Toast.makeText(this, "Loading, this may take awhile…", Toast.LENGTH_LONG).show();
+        Toast.makeText(this, "Loading… this may take a moment", Toast.LENGTH_LONG).show();
 
         closeFileFrag();
         mBinding.imgPreview.setVisibility(View.INVISIBLE);
@@ -490,6 +535,7 @@ public class MainActivity extends AppCompatActivity {
         mBinding.imgPreview.setAlpha(0.69f);
         mBinding.numProgress.setVisibility(View.VISIBLE);
         mBinding.numProgress.setProgress(0);
+        //mBinding.permissionHolder.setVisibility(View.GONE);
         new Handler().postDelayed(() -> {
             mBinding.glowingLoader.startAnimation(fadeIn);
             mBinding.glowingLoader.setVisibility(View.VISIBLE);
@@ -500,7 +546,7 @@ public class MainActivity extends AppCompatActivity {
 
     private void showFinishLayout() {
         Log.i(TAG, "showFinishLayout()");
-
+        //mBinding.permissionHolder.setVisibility(View.GONE);
         showFileFrag();
 
         mBinding.ivCircle.setVisibility(View.GONE);
@@ -630,7 +676,25 @@ public class MainActivity extends AppCompatActivity {
             MainActivity.this.startService(intent);
         }
         bindService(intent, dlServiceConn, Context.BIND_AUTO_CREATE);
+    }
 
+    public void onEnableBackgroundClicked(View v) {
+        mBinding.permissionHolder.setVisibility(View.GONE);
+        mPrefsManager.setBackgroundEnabled("TRUE");
+
+        Intent intent = new Intent(android.provider.Settings.ACTION_SETTINGS);
+        intent.setAction(Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS);
+        //intent.setAction(Settings.ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS);
+        intent.setData(Uri.parse("package:" + getPackageName()));
+        startActivity(intent);
+    }
+
+    public void OnEnableNotifClicked(View v) {
+
+        closeBigFrag(mBinding.bigFragHolder);
+        ActivityCompat.requestPermissions(MainActivity.this,
+                new String[] {Manifest.permission.POST_NOTIFICATIONS},
+                1);
     }
 
     public void showRateAd() {
