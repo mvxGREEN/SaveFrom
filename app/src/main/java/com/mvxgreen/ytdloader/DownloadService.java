@@ -13,6 +13,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.pm.ServiceInfo;
 import android.os.AsyncTask;
+import android.os.Binder;
 import android.os.Build;
 import android.os.IBinder;
 import android.util.Log;
@@ -25,6 +26,7 @@ import androidx.core.app.ServiceCompat;
 
 import com.chaquo.python.PyObject;
 import com.chaquo.python.Python;
+import com.mvxgreen.ytdloader.databinding.ActivityMainBinding;
 
 import java.io.File;
 import java.io.IOException;
@@ -34,14 +36,25 @@ import java.nio.file.attribute.FileTime;
 public class DownloadService extends Service {
     private static final String TAG = DownloadService.class.getCanonicalName();
     private PrefsManager mPrefsManager;
-
+    private final IBinder binder = new LocalBinder();
     int pendingIntentId = 0;
+
+    /**
+     * Class used for the client Binder.  Because we know this service always
+     * runs in the same process as its clients, we don't need to deal with IPC.
+     */
+    public class LocalBinder extends Binder {
+        public DownloadService getService() {
+            // Return this instance of LocalService so clients can call public methods
+            return DownloadService.this;
+        }
+    }
 
     @Nullable
     @Override
     public IBinder onBind(Intent intent) {
         Log.i(TAG, "OnBind");
-        return null;
+        return binder;
     }
 
     @Override
@@ -74,14 +87,16 @@ public class DownloadService extends Service {
     }
 
     private void downloadVideo(String url) {
-        new DownloadVideoTask().execute(url);
+        new DownloadVideoTask(MainActivity.activityCurrent).execute(url);
     }
 
     //async method to extract audio from video in background
-    public class DownloadVideoTask extends AsyncTask<String, Void, String> {
+    public static class DownloadVideoTask extends AsyncTask<String, Void, String> {
+        private static final String TAG = DownloadVideoTask.class.getCanonicalName();
+        PrefsManager prefsManager;
 
-        public DownloadVideoTask() {
-            Log.i(TAG, "DownloadVideoTask()");
+        public DownloadVideoTask(Context ctx) {
+            prefsManager = new PrefsManager(ctx);
         }
 
         //this method will download the audio file by using python script
@@ -96,33 +111,30 @@ public class DownloadService extends Service {
             String res = "";
             try {
                 Log.i(TAG, "trying download with audio...");
-                PyObject result = pyObject.callAttr("dl_video_with_audio",MainActivity.activityCurrent, videoUrl, ABS_PATH_DOCS, mPrefsManager.getFileName());
+                PyObject result = pyObject.callAttr("dl_video_with_audio",MainActivity.activityCurrent, videoUrl, ABS_PATH_DOCS, prefsManager.getFileName());
                 res = result.toString();
                 Log.i(TAG, "format_ids: "+ res);
-                mPrefsManager.setFormatId(res);
+                prefsManager.setFormatId(res);
             } catch (Exception e) {
                 e.printStackTrace();
                 String msg = "error downloading video! e="+e;
                 Log.e(TAG, msg);
 
-                // send finish broadcast without filepath
+                // send finish broadcast
                 Intent intent = new Intent("69");
                 intent.putExtra("FILEPATH", "");
-                sendBroadcast(intent);
-
-                stopForeground(true);
-                stopSelf();
+                MainActivity.activityCurrent.sendBroadcast(intent);
             }
 
             // merge if necessary
-            if (mPrefsManager.getFormatId().contains("+")) {
+            if (prefsManager.getFormatId().contains("+")) {
                 // split format ids
-                String fIds = mPrefsManager.getFormatId();
+                String fIds = prefsManager.getFormatId();
                 String fIdVideo = fIds.substring(0, fIds.indexOf("+"));
                 String fIdAudio = fIds.substring(fIds.indexOf("+")+1);
 
                 // build filepaths
-                String absFilepath = ABS_PATH_DOCS + mPrefsManager.getFileName() + ".mp4";
+                String absFilepath = ABS_PATH_DOCS + prefsManager.getFileName() + ".mp4";
                 String absFilepathVideo = absFilepath + ".f" + fIdVideo;
                 String absFilepathAudio = absFilepath + ".f" + fIdAudio;
 
@@ -159,8 +171,8 @@ public class DownloadService extends Service {
             Log.i(TAG, "OnPostExecute format_id=" + s);
 
             // scan new media
-            String ext = mPrefsManager.getFileExt();
-            String absFilePath = ABS_PATH_DOCS + mPrefsManager.getFileName() + "." + ext;
+            String ext = prefsManager.getFileExt();
+            String absFilePath = ABS_PATH_DOCS + prefsManager.getFileName() + "." + ext;
             Log.i(TAG, "absolute filepath: " + absFilePath);
 
             File dl = new File(absFilePath);
@@ -179,10 +191,7 @@ public class DownloadService extends Service {
 
             Intent intent = new Intent("69");
             intent.putExtra("FILEPATH", absFilePath);
-            sendBroadcast(intent);
-
-            stopForeground(true);
-            stopSelf();
+            MainActivity.activityCurrent.sendBroadcast(intent);
         }
     }
 
@@ -199,7 +208,7 @@ public class DownloadService extends Service {
             }
             PendingIntent pi = PendingIntent.getActivity(MainActivity.activityCurrent, pendingIntentId++, intent, pendingIntentFlags);
 
-            NotificationChannel channel = new NotificationChannel("SaveFrom", "SaveFrom", NotificationManager.IMPORTANCE_DEFAULT);
+            NotificationChannel channel = new NotificationChannel("SaveFrom", "SaveFrom", NotificationManager.IMPORTANCE_LOW);
             NotificationManager manager = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
             manager.createNotificationChannel(channel);
 
@@ -232,5 +241,25 @@ public class DownloadService extends Service {
             }
             // ...
         }
+    }
+
+    public void setProgress(int max_progress, int progress) {
+        Intent intent = new Intent(DownloadService.this, MainActivity.class);
+        intent.setFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP | Intent.FLAG_ACTIVITY_CLEAR_TOP);
+        int pendingIntentFlags = PendingIntent.FLAG_UPDATE_CURRENT;
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            pendingIntentFlags = (PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
+        }
+        PendingIntent pi = PendingIntent.getActivity(MainActivity.activityCurrent, pendingIntentId++, intent, pendingIntentFlags);
+        Notification notification = new NotificationCompat.Builder(DownloadService.this, "SaveFrom")
+                .setContentTitle("SaveFrom is downloading…")
+                .setSmallIcon(R.drawable.downloader_raw)
+                .setProgress(max_progress, progress, false)
+                .setOngoing(true)
+                .setContentIntent(pi)
+                .build();
+
+        NotificationManager manager = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
+        manager.notify(43, notification);
     }
 }

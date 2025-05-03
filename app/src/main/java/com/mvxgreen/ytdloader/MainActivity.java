@@ -7,9 +7,11 @@ import android.app.Dialog;
 import android.content.BroadcastReceiver;
 import android.content.ClipData;
 import android.content.ClipboardManager;
+import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.content.ServiceConnection;
 import android.content.pm.PackageManager;
 import android.graphics.drawable.Animatable;
 import android.net.Uri;
@@ -18,6 +20,7 @@ import android.os.Build;
 import android.os.Bundle;
 import android.os.Environment;
 import android.os.Handler;
+import android.os.IBinder;
 import android.os.StrictMode;
 import android.text.Editable;
 import android.text.TextWatcher;
@@ -67,6 +70,7 @@ public class MainActivity extends AppCompatActivity {
                     .getAbsolutePath() + "/";
 
     public static MainActivity activityCurrent;
+    DownloadService mDownloadService;
     public ActivityMainBinding mBinding;
     Animation fadeIn, fadeOut;
     FileFragment fileFragment;
@@ -286,16 +290,19 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
-    public static void setProgress(String prog) {
-        Log.i(TAG, "setProgress: " + prog);
-        prog = prog.trim().replace("%", "");
-        int p = (int)Double.parseDouble(prog);
+    public static void setProgress(String progressStr) {
+        Log.i(TAG, "setProgress: " + progressStr);
+        progressStr = progressStr.trim().replace("%", "");
+        int progress = (int)Double.parseDouble(progressStr);
 
-        // update progress ui
+        // update activity ui
         MainActivity.activityCurrent.runOnUiThread(() -> {
             MainActivity.activityCurrent.mBinding.numProgress.setVisibility(View.VISIBLE);
-            MainActivity.activityCurrent.mBinding.numProgress.setProgress(p);
+            MainActivity.activityCurrent.mBinding.numProgress.setProgress(progress);
         });
+
+        // update notification
+        MainActivity.activityCurrent.mDownloadService.setProgress(100, progress);
     }
 
     /**
@@ -620,17 +627,10 @@ public class MainActivity extends AppCompatActivity {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             MainActivity.this.startForegroundService(intent);
         } else {
-            // or use regular task if android version too low
-            new Thread(() -> {
-                new DlVideoTaskTemp().execute();
-            }).start();
+            MainActivity.this.startService(intent);
         }
+        bindService(intent, dlServiceConn, Context.BIND_AUTO_CREATE);
 
-        /* TODO remove if service works
-        new Thread(() -> {
-            downloadVideo(mPrefsManager.getOriginalUrl());
-        }).start();
-         */
     }
 
     public void showRateAd() {
@@ -690,6 +690,10 @@ public class MainActivity extends AppCompatActivity {
             Log.i(TAG, "onReceive");
             String absFilePath = intent.getStringExtra("FILEPATH");
 
+            // stop download service
+            mDownloadService.stopForeground(true);
+            mDownloadService.stopSelf();
+
             // show error UI if missing filepath
             if (absFilePath == null || absFilePath.isEmpty()) {
                 runOnUiThread(() -> {
@@ -722,105 +726,21 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
-    private class DlVideoTaskTemp extends AsyncTask<String, Void, String> {
-
-        public DlVideoTaskTemp() {
-            Log.i(TAG, "DlVideoTaskTemp()");
-        }
-
-        //this method will download the audio file by using python script
+    /**
+     * Bind client to Service
+     */
+    protected ServiceConnection dlServiceConn = new ServiceConnection() {
         @Override
-        protected String doInBackground(String... urls) {
-            Log.i(TAG, "doInBackground()");
-            String videoUrl = urls[0];
-
-            Python py = Python.getInstance();
-            PyObject pyObject = py.getModule("vidloader");
-
-            String res = "";
-            try {
-                Log.i(TAG, "trying download with audio...");
-                PyObject result = pyObject.callAttr("dl_video_with_audio",MainActivity.activityCurrent, videoUrl, ABS_PATH_DOCS, mPrefsManager.getFileName());
-                res = result.toString();
-                Log.i(TAG, "format_ids: "+ res);
-                mPrefsManager.setFormatId(res);
-            } catch (Exception e) {
-                e.printStackTrace();
-                String msg = "error downloading video! e="+e;
-                Log.e(TAG, msg);
-
-                // send finish broadcast without filepath
-                Intent intent = new Intent("69");
-                intent.putExtra("FILEPATH", "");
-                sendBroadcast(intent);
-            }
-
-            // merge if necessary
-            if (mPrefsManager.getFormatId().contains("+")) {
-                // split format ids
-                String fIds = mPrefsManager.getFormatId();
-                String fIdVideo = fIds.substring(0, fIds.indexOf("+"));
-                String fIdAudio = fIds.substring(fIds.indexOf("+")+1);
-
-                // build filepaths
-                String absFilepath = ABS_PATH_DOCS + mPrefsManager.getFileName() + ".mp4";
-                String absFilepathVideo = absFilepath + ".f" + fIdVideo;
-                String absFilepathAudio = absFilepath + ".f" + fIdAudio;
-
-                // append file extensions
-                File v = new File(absFilepathVideo+".webm");
-                File a = new File(absFilepathAudio+".webm");
-                if (v.exists()) {
-                    Log.i(TAG, ".webm video file detected");
-                    absFilepathVideo = absFilepathVideo+".webm";
-                } else {
-                    Log.i(TAG, ".mp4 video file detected");
-                    absFilepathVideo = absFilepathVideo+".mp4";
-                }
-                if (a.exists()) {
-                    Log.i(TAG, ".webm audio file detected");
-                    absFilepathAudio = absFilepathAudio+".webm";
-                } else {
-                    Log.i(TAG, ".mp4 video file detected");
-                    absFilepathAudio = absFilepathAudio+".mp4";
-                }
-
-                // run ffmpeg merge
-                ConcatRunner.merge(absFilepath, absFilepathVideo, absFilepathAudio);
-
-                // delete temp files
-                ConcatRunner.deleteTempFiles(absFilepathVideo, absFilepathAudio);
-            }
-
-            return res;
+        public void onServiceConnected(ComponentName name, IBinder service) {
+            Log.i(TAG, "onServiceConnected");
+            DownloadService.LocalBinder binder = (DownloadService.LocalBinder) service;
+            mDownloadService = binder.getService();
         }
 
         @Override
-        protected void onPostExecute(String s) {
-            Log.i(TAG, "OnPostExecute format_id=" + s);
+        public void onServiceDisconnected(ComponentName name) {
+            Log.i(TAG, "onServiceDisconnected");
 
-            // scan new media
-            String ext = mPrefsManager.getFileExt();
-            String absFilePath = ABS_PATH_DOCS + mPrefsManager.getFileName() + "." + ext;
-            Log.i(TAG, "absolute filepath: " + absFilePath);
-
-            File dl = new File(absFilePath);
-            if (dl.exists()) {
-                FileTime now = null;
-                if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
-                    now = FileTime.fromMillis(System.currentTimeMillis());
-                    try {
-                        Files.setLastModifiedTime(dl.toPath(), now);
-                    } catch (IOException e) {
-                        throw new RuntimeException(e);
-                    }
-                }
-
-            }
-
-            Intent intent = new Intent("69");
-            intent.putExtra("FILEPATH", absFilePath);
-            sendBroadcast(intent);
         }
-    }
+    };
 }
