@@ -60,7 +60,7 @@ def extract_video_ext(video_url):
 
 def extract_video_dl_url(video_url):
     ydl_opts = {
-        'format': "bestvideo[height<=1080]",
+        'format': "bestvideo[height<=2160]",
         'restrictfilenames': True,
         "cachedir": False,
         "ignoreerrors": True,
