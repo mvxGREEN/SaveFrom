@@ -3,6 +3,7 @@ package com.mvxgreen.ytdloader;
 import static com.mvxgreen.ytdloader.MediaManager.MIME_MP4;
 
 import android.Manifest;
+import android.annotation.SuppressLint;
 import android.app.Dialog;
 import android.content.BroadcastReceiver;
 import android.content.ClipData;
@@ -12,6 +13,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.ServiceConnection;
+import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.graphics.drawable.Animatable;
 import android.net.Uri;
@@ -20,7 +22,6 @@ import android.os.Bundle;
 import android.os.Environment;
 import android.os.Handler;
 import android.os.IBinder;
-import android.os.PowerManager;
 import android.os.StrictMode;
 import android.provider.Settings;
 import android.text.Editable;
@@ -40,6 +41,7 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.activity.EdgeToEdge;
+import androidx.annotation.NonNull;
 import androidx.annotation.RequiresApi;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.Toolbar;
@@ -48,9 +50,25 @@ import androidx.core.app.ActivityCompat;
 import androidx.fragment.app.FragmentManager;
 import androidx.fragment.app.FragmentTransaction;
 
+import com.android.billingclient.api.AcknowledgePurchaseParams;
+import com.android.billingclient.api.AcknowledgePurchaseResponseListener;
+import com.android.billingclient.api.BillingClient;
+import com.android.billingclient.api.BillingClientStateListener;
+import com.android.billingclient.api.BillingFlowParams;
+import com.android.billingclient.api.BillingResult;
+import com.android.billingclient.api.ProductDetails;
+import com.android.billingclient.api.ProductDetailsResponseListener;
+import com.android.billingclient.api.Purchase;
+import com.android.billingclient.api.PurchasesResponseListener;
+import com.android.billingclient.api.PurchasesUpdatedListener;
+import com.android.billingclient.api.QueryProductDetailsParams;
+import com.android.billingclient.api.QueryProductDetailsResult;
+import com.android.billingclient.api.QueryPurchasesParams;
+import com.android.billingclient.api.UnfetchedProduct;
 import com.chaquo.python.PyObject;
 import com.chaquo.python.Python;
 import com.chaquo.python.android.AndroidPlatform;
+import com.google.common.collect.ImmutableList;
 import com.google.firebase.analytics.FirebaseAnalytics;
 import com.mvxgreen.ytdloader.databinding.ActivityMainBinding;
 import com.mvxgreen.ytdloader.frag.BigFragment;
@@ -59,8 +77,9 @@ import com.squareup.picasso.Callback;
 import com.squareup.picasso.Picasso;
 
 import java.net.InetAddress;
+import java.util.List;
 
-public class MainActivity extends AppCompatActivity {
+public class MainActivity extends AppCompatActivity implements PurchasesUpdatedListener {
     private static final String TAG = MainActivity.class.getCanonicalName();
     public static final String ABS_PATH_DOCS = Environment.getExternalStoragePublicDirectory(
                             Environment.DIRECTORY_DOCUMENTS)
@@ -79,10 +98,27 @@ public class MainActivity extends AppCompatActivity {
 
     boolean isBackgroundEnabled = false;
 
+    // BILLING
+    private PurchasesUpdatedListener purchasesUpdatedListener = new PurchasesUpdatedListener() {
+        @Override
+        public void onPurchasesUpdated(BillingResult billingResult, List<Purchase> purchases) {
+            // To be implemented in a later section.
+        }
+    };
+    public static boolean MIsGold = false;
+    private BillingClient billingClient = BillingClient.newBuilder(MainActivity.this)
+            .setListener(purchasesUpdatedListener)
+            //.enablePendingPurchases()
+            .enableAutoServiceReconnection()
+            .build();
+
+    private BillingFlowParams MBillingFlowParams;
+
     public MainActivity() {
         activityCurrent = this;
     }
 
+    @SuppressLint("UnspecifiedRegisterReceiverFlag")
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -117,7 +153,8 @@ public class MainActivity extends AppCompatActivity {
             registerReceiver(mFinishReceiver, new IntentFilter("69"));
         }
 
-
+        // init billing
+        startBillingConnection();
     }
 
     @Override
@@ -127,6 +164,174 @@ public class MainActivity extends AppCompatActivity {
             unregisterReceiver(mFinishReceiver);
         } catch (Exception ignored) {}
         super.onDestroy();
+    }
+
+    public void launchBillingFlow() {
+        Log.i(TAG, "launchBillingFlow");
+        BillingResult billingResult = billingClient.launchBillingFlow(MainActivity.this, MBillingFlowParams);
+    }
+
+    public void startBillingConnection() {
+        Log.i(TAG, "startBillingConnection");
+        billingClient.startConnection(new BillingClientStateListener() {
+            @Override
+            public void onBillingSetupFinished(BillingResult billingResult) {
+                if (billingResult.getResponseCode() ==  BillingClient.BillingResponseCode.OK) {
+                    // query available products
+                    QueryProductDetailsParams queryProductDetailsParams =
+                            QueryProductDetailsParams.newBuilder()
+                                    .setProductList(
+                                            ImmutableList.of(
+                                                    QueryProductDetailsParams.Product.newBuilder()
+                                                            .setProductId("product_id_example")
+                                                            .setProductType(BillingClient.ProductType.SUBS)
+                                                            .build()))
+                                    .build();
+
+                    billingClient.queryProductDetailsAsync(
+                            queryProductDetailsParams,
+                            new ProductDetailsResponseListener() {
+                                public void onProductDetailsResponse(@NonNull BillingResult billingResult,
+                                                                     @NonNull QueryProductDetailsResult queryProductDetailsResult) {
+                                    if (billingResult.getResponseCode() == BillingClient.BillingResponseCode.OK) {
+                                        for (ProductDetails productDetails : queryProductDetailsResult.getProductDetailsList()) {
+                                            ImmutableList<BillingFlowParams.ProductDetailsParams> productDetailsParamsList =
+                                                    ImmutableList.of(
+                                                            BillingFlowParams.ProductDetailsParams.newBuilder()
+                                                                    // retrieve a value for "productDetails" by calling queryProductDetailsAsync()
+                                                                    .setProductDetails(productDetails)
+                                                                    // Get the offer token:
+                                                                    // a. For one-time products, call ProductDetails.getOneTimePurchaseOfferDetailsList()
+                                                                    // for a list of offers that are available to the user.
+                                                                    // b. For subscriptions, call ProductDetails.subscriptionOfferDetails()
+                                                                    // for a list of offers that are available to the user.
+                                                                    .setOfferToken(productDetails.getSubscriptionOfferDetails().toString())
+                                                                    .build()
+                                                    );
+
+                                            MBillingFlowParams = BillingFlowParams.newBuilder()
+                                                    .setProductDetailsParamsList(productDetailsParamsList)
+                                                    .build();
+                                        }
+
+                                        for (UnfetchedProduct unfetchedProduct : queryProductDetailsResult.getUnfetchedProductList()) {
+                                            // Handle any unfetched products as appropriate.
+                                        }
+                                    }
+                                }
+                            }
+                    );
+
+                    // check purchases
+                    checkSubscriptionStatus();
+                }
+            }
+            @Override
+            public void onBillingServiceDisconnected() {
+                billingClient.startConnection(new BillingClientStateListener() {
+                    @Override
+                    public void onBillingServiceDisconnected() {
+
+                    }
+
+                    @Override
+                    public void onBillingSetupFinished(@NonNull BillingResult billingResult) {
+
+                    }
+                });
+            }
+        });
+    }
+
+    @Override
+    public void onPurchasesUpdated(BillingResult billingResult, List<Purchase> purchases) {
+        if (billingResult.getResponseCode() == BillingClient.BillingResponseCode.OK
+                && purchases != null) {
+            for (Purchase purchase : purchases) {
+                String purchaseId = purchase.getProducts().get(0);
+
+                if (purchaseId == "savefrom_gold") {
+                    if (purchase.getPurchaseState() != Purchase.PurchaseState.PURCHASED) {
+                        Log.w(TAG, "purchase item not purchased");
+                    } else if (!purchase.isAcknowledged()) {
+                        Log.i(TAG, "purchase is not yet acknowledged");
+
+                        handlePurchase(purchase);
+                    }
+                }
+            }
+        } else if (billingResult.getResponseCode() == BillingClient.BillingResponseCode.USER_CANCELED) {
+            Log.i(TAG, "purchase canceled");
+        } else {
+            Log.i(TAG, "no purchases found");
+        }
+    }
+
+    public void checkSubscriptionStatus() {
+        QueryPurchasesParams queryPurchasesParams = QueryPurchasesParams.newBuilder()
+                        .setProductType(BillingClient.ProductType.SUBS)
+                        .build();
+        billingClient.queryPurchasesAsync(queryPurchasesParams, new PurchasesResponseListener() {
+            @Override
+            public void onQueryPurchasesResponse(@NonNull BillingResult billingResult, @NonNull List<Purchase> list) {
+                if (billingResult.getResponseCode() == BillingClient.BillingResponseCode.OK) {
+                    // return if empty
+                    if (list.size() == 0) {
+                        Log.i(TAG, "no purchases found");
+                        return;
+                    }
+
+                    // process purchases
+                    for (Purchase purchase :
+                            list) {
+                        if (purchase.getPurchaseState() != Purchase.PurchaseState.PURCHASED) {
+                            Log.w(TAG, "purchase state is not purchased");
+                            return;
+                        } else if (!purchase.isAcknowledged()) {
+                            MainActivity.this.handlePurchase(purchase);
+                        } else {
+                            // update shared prefs
+                            SharedPreferences sharedPref = getSharedPreferences("SaveFromPrefs", Context.MODE_PRIVATE);
+                            SharedPreferences.Editor editor = sharedPref.edit();
+                            editor.putBoolean("IS_GOLD", true);
+                            editor.apply();
+
+                            MIsGold = true;
+                        }
+                    }
+                }
+            }
+        });
+    }
+
+    public void handlePurchase(Purchase purchase) {
+        AcknowledgePurchaseParams acknowledgePurchaseParams = AcknowledgePurchaseParams.newBuilder()
+                .setPurchaseToken(purchase.getPurchaseToken())
+                .build();
+
+        billingClient.acknowledgePurchase(acknowledgePurchaseParams, new AcknowledgePurchaseResponseListener() {
+            @Override
+            public void onAcknowledgePurchaseResponse(@NonNull BillingResult billingResult) {
+                if (billingResult.getResponseCode() == BillingClient.BillingResponseCode.OK) {
+                    Log.i(TAG, "purchase acknowledged");
+
+                    // update shared prefs
+                    SharedPreferences sharedPref = getSharedPreferences("SaveFromPrefs", Context.MODE_PRIVATE);
+                    SharedPreferences.Editor editor = sharedPref.edit();
+                    editor.putBoolean("IS_GOLD", true);
+                    editor.apply();
+
+                    MIsGold = true;
+
+                    // update ui to gold
+                    MainActivity.this.runOnUiThread(() -> {
+                        Toast.makeText(MainActivity.this, "Thanks and enjoy <3", Toast.LENGTH_LONG).show();
+                        // TODO fill toolbar item with gold
+                        MainActivity.this.showEmptyLayout();
+                    });
+                }
+            }
+        });
     }
 
     // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~  PERMISSIONS  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -349,25 +554,6 @@ public class MainActivity extends AppCompatActivity {
                 .commitAllowingStateLoss();
     }
 
-    public void showBigFrag(String title) {
-        // bundle menu item title
-        Bundle extras = new Bundle();
-        extras.putString(getString(R.string.key_extra_menu_item_title), title);
-
-        // Create fragment, add extras
-        BigFragment bigFragment = new BigFragment();
-        bigFragment.setArguments(extras);
-
-        // Inflate fragment
-        ConstraintLayout fragView = this.findViewById(R.id.big_frag_holder);
-        fragView.removeAllViews();
-        fragView.setVisibility(View.VISIBLE);
-        getSupportFragmentManager().beginTransaction()
-                .setReorderingAllowed(true)
-                .add(R.id.big_frag_holder, bigFragment, null)
-                .commitAllowingStateLoss();
-    }
-
     /**
      * Hide fragment (holder)
      * @param v close button (clicked)
@@ -411,9 +597,6 @@ public class MainActivity extends AppCompatActivity {
         ConstraintLayout fragHolder = findViewById(R.id.file_hint_holder);
         fragHolder.setVisibility(View.GONE);
     }
-
-
-
 
     private void showEmptyLayout() {
         Log.i(TAG, "showEmptyLayout");
