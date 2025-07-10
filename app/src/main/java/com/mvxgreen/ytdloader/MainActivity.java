@@ -501,20 +501,22 @@ public class MainActivity extends AppCompatActivity implements PurchasesUpdatedL
             }
         });
 
-        // spinner
+        // init spinner
         Spinner spinner = (Spinner) findViewById(R.id.res_spinner);
-        // Create an ArrayAdapter using the string array and a default spinner layout.
         ArrayAdapter<CharSequence> adapter = ArrayAdapter.createFromResource(
                 this,
                 R.array.res_array,
                 android.R.layout.simple_spinner_item
         );
-        // Specify the layout to use when the list of choices appears.
         adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
-        // Apply the adapter to the spinner.
         spinner.setAdapter(adapter);
-        // set default res to 1080p
-        spinner.setSelection(2);
+
+        // set default resolution
+        SharedPreferences sharedPref = getSharedPreferences("SaveFromPrefs", Context.MODE_PRIVATE);
+        int selectionIndex = sharedPref.getInt("RES_POSITION", 3);
+        spinner.setSelection(selectionIndex);
+
+        // spinner item selected listener
         spinner.setOnItemSelectedListener(this);
 
         // permission frag
@@ -847,13 +849,17 @@ public class MainActivity extends AppCompatActivity implements PurchasesUpdatedL
         // extract video information
 
         try {
-            PyObject title = pyObject.callAttr("extract_video_title", url, mResolution);
+            PyObject title = pyObject.callAttr("extract_video_title",
+                    url,
+                    mResolution.replace("p", ""));
             titleStr = title.toString();
             if (titleStr.length() > 25) {
                 titleStr = titleStr.substring(0, 25);
             }
 
-            PyObject thumbnail = pyObject.callAttr("extract_video_thumbnail", url, mResolution);
+            PyObject thumbnail = pyObject.callAttr("extract_video_thumbnail",
+                    url,
+                    mResolution.replace("p", ""));
             thumbStr = thumbnail.toString();
             //PyObject ext = pyObject.callAttr("extract_video_ext", url);
             //extStr = ext.toString();
@@ -1009,7 +1015,15 @@ public class MainActivity extends AppCompatActivity implements PurchasesUpdatedL
         Log.i(TAG, "onItemSelected position=" + position);
         String spinnerItem = parent.getSelectedItem().toString();
         Log.i(TAG, "spinnerItem=" + spinnerItem);
+
+        // update var
         mResolution = spinnerItem;
+
+        // update shared pref
+        SharedPreferences sharedPref = getSharedPreferences("SaveFromPrefs", Context.MODE_PRIVATE);
+        SharedPreferences.Editor editor = sharedPref.edit();
+        editor.putInt("RES_POSITION", position);
+        editor.apply();
     }
 
     @Override

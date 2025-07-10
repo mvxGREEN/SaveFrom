@@ -113,7 +113,7 @@ public class DownloadService extends Service {
                         videoUrl,
                         ABS_PATH_DOCS,
                         prefsManager.getFileName(),
-                        mResolution);
+                        mResolution.replace("p", ""));
                 res = result.toString();
                 Log.i(TAG, "format_ids: "+ res);
                 prefsManager.setFormatId(res);
