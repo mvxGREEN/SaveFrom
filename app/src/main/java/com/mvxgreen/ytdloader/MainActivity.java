@@ -580,6 +580,20 @@ public class MainActivity extends AppCompatActivity implements PurchasesUpdatedL
         showBigFrag(menuItem);
     }
 
+    // open about page
+    public void onAboutClick(MenuItem menuItem) {
+        String aboutUrl = "https://mobileapps.green/";
+        Intent aboutIntent = new Intent(Intent.ACTION_VIEW, Uri.parse(aboutUrl));
+        MainActivity.this.startActivity(aboutIntent);
+    }
+
+    // open privacy policy page
+    public void onPrivacyClick(MenuItem menuItem) {
+        String privacyUrl = "https://mobileapps.green/privacy-policy";
+        Intent privacyIntent = new Intent(Intent.ACTION_VIEW, Uri.parse(privacyUrl));
+        MainActivity.this.startActivity(privacyIntent);
+    }
+
     public void onRateClick(MenuItem menuItem) {
         final String appPackageName = getPackageName(); // getPackageName() from Context or Activity object
         try {
@@ -851,7 +865,7 @@ public class MainActivity extends AppCompatActivity implements PurchasesUpdatedL
         try {
             PyObject title = pyObject.callAttr("extract_video_title",
                     url,
-                    mResolution.replace("p", ""));
+                    mResolution.replaceAll("\\D", ""));
             titleStr = title.toString();
             if (titleStr.length() > 25) {
                 titleStr = titleStr.substring(0, 25);
@@ -859,7 +873,7 @@ public class MainActivity extends AppCompatActivity implements PurchasesUpdatedL
 
             PyObject thumbnail = pyObject.callAttr("extract_video_thumbnail",
                     url,
-                    mResolution.replace("p", ""));
+                    mResolution.replaceAll("\\D", ""));
             thumbStr = thumbnail.toString();
             //PyObject ext = pyObject.callAttr("extract_video_ext", url);
             //extStr = ext.toString();
