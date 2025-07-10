@@ -723,7 +723,7 @@ public class MainActivity extends AppCompatActivity implements PurchasesUpdatedL
         mBinding.numProgress.setVisibility(View.GONE);
         mBinding.glowingLoader.startAnimation(fadeIn);
         mBinding.glowingLoader.setVisibility(View.VISIBLE);
-        mBinding.ivCircle.setVisibility(View.GONE);
+        mBinding.ivCircle.setVisibility(View.INVISIBLE);
         mBinding.btnPaste.setVisibility(View.GONE);
     }
 

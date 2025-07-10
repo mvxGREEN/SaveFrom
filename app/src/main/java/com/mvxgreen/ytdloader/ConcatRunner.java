@@ -59,14 +59,10 @@ public final class ConcatRunner {
             // --- Video Track ---
             videoExtractor = new MediaExtractor();
             try {
-                File v = new File(videoFilePath);
-                FileInputStream vfis = new FileInputStream(v);
-                videoExtractor.setDataSource(vfis.getFD());
-            } catch (Exception e) {
-                Log.e(TAG, "Error opening audio file: " + e.getMessage());
-                e.printStackTrace();
-
                 videoExtractor.setDataSource(videoFilePath);
+            } catch (Exception e) {
+                Log.e(TAG, "Error setting videoExtractor data source: " + e.getMessage());
+                e.printStackTrace();
             }
             int videoTrackIndex = -1;
             MediaFormat videoFormat = null;
@@ -76,6 +72,7 @@ public final class ConcatRunner {
                 if (mime != null && mime.startsWith("video/")) {
                     videoExtractor.selectTrack(i);
                     videoFormat = format;
+                    //videoFormat.setString(MediaFormat.KEY_MIME, "video/mp4v");
                     videoTrackIndex = muxer.addTrack(videoFormat);
                     break;
                 }
@@ -87,14 +84,10 @@ public final class ConcatRunner {
             // --- Audio Track ---
             audioExtractor = new MediaExtractor();
             try {
-                File a = new File(audioFilePath);
-                FileInputStream afis = new FileInputStream(a);
-                audioExtractor.setDataSource(afis.getFD());
-            } catch (Exception e) {
-                Log.e(TAG, "Error opening audio file: " + e.getMessage());
-                e.printStackTrace();
-
                 audioExtractor.setDataSource(audioFilePath);
+            } catch (Exception e) {
+                Log.e(TAG, "Error setting audioExtractor data source: " + e.getMessage());
+                e.printStackTrace();
             }
 
             int audioTrackIndex = -1;

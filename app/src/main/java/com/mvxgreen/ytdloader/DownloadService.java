@@ -172,11 +172,13 @@ public class DownloadService extends Service {
                 Log.i(TAG, "absFilePathVideo=" + absFilepathVideo
                         + ", absFilePathAudio=" + absFilepathAudio);
 
-                // run ffmpeg merge
+                // merge video and audio
+                // TODO uncomment
                 ConcatRunner.mergeAV(absFilepath, absFilepathVideo, absFilepathAudio);
 
                 // delete temp files
-                ConcatRunner.deleteTempFiles(absFilepathVideo, absFilepathAudio);
+                // TODO uncomment
+                //ConcatRunner.deleteTempFiles(absFilepathVideo, absFilepathAudio);
             } catch (Exception e) {
                 Log.e(TAG, "merge failed!");
                 e.printStackTrace();
