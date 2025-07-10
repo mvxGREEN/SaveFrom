@@ -37,8 +37,11 @@ import android.view.animation.AccelerateInterpolator;
 import android.view.animation.Animation;
 import android.view.animation.AnimationUtils;
 import android.view.inputmethod.InputMethodManager;
+import android.widget.AdapterView;
+import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.LinearLayout;
+import android.widget.Spinner;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -83,7 +86,7 @@ import com.squareup.picasso.Picasso;
 import java.net.InetAddress;
 import java.util.List;
 
-public class MainActivity extends AppCompatActivity implements PurchasesUpdatedListener {
+public class MainActivity extends AppCompatActivity implements PurchasesUpdatedListener, AdapterView.OnItemSelectedListener {
     private static final String TAG = MainActivity.class.getCanonicalName();
     public static final String ABS_PATH_DOCS = Environment.getExternalStoragePublicDirectory(
                             Environment.DIRECTORY_DOCUMENTS)
@@ -101,6 +104,8 @@ public class MainActivity extends AppCompatActivity implements PurchasesUpdatedL
     AndroidPlatform androidPlatform;
 
     boolean isBackgroundEnabled = false;
+
+    static String MResolution = "1080p";
 
     // BILLING
     private PurchasesUpdatedListener purchasesUpdatedListener = new PurchasesUpdatedListener() {
@@ -422,11 +427,11 @@ public class MainActivity extends AppCompatActivity implements PurchasesUpdatedL
         initAnimations();
         mBinding.mainScroll.setSmoothScrollingEnabled(true);
 
-        // Toolbar
+        // toolbar
         Toolbar toolbar = findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
 
-        // Search Bar
+        // search bar
         mBinding.mainSearchBar.addTextChangeListener(new TextWatcher() {
             int oldCount;
 
@@ -496,6 +501,23 @@ public class MainActivity extends AppCompatActivity implements PurchasesUpdatedL
             }
         });
 
+        // spinner
+        Spinner spinner = (Spinner) findViewById(R.id.res_spinner);
+        // Create an ArrayAdapter using the string array and a default spinner layout.
+        ArrayAdapter<CharSequence> adapter = ArrayAdapter.createFromResource(
+                this,
+                R.array.res_array,
+                android.R.layout.simple_spinner_item
+        );
+        // Specify the layout to use when the list of choices appears.
+        adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+        // Apply the adapter to the spinner.
+        spinner.setAdapter(adapter);
+        // set default res to 1080p
+        spinner.setSelection(2);
+        spinner.setOnItemSelectedListener(this);
+
+        // permission frag
         if (!isBackgroundEnabled) {
             Log.i(TAG, "showing permission holder");
             mBinding.permissionHolder.setVisibility(View.VISIBLE);
@@ -980,6 +1002,19 @@ public class MainActivity extends AppCompatActivity implements PurchasesUpdatedL
                 Log.w(TAG, "caught bad token exception");
             }
         }
+    }
+
+    @Override
+    public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
+        Log.i(TAG, "onItemSelected position=" + position);
+        String spinnerItem = parent.getSelectedItem().toString();
+        Log.i(TAG, "spinnerItem=" + spinnerItem);
+        MResolution = spinnerItem;
+    }
+
+    @Override
+    public void onNothingSelected(AdapterView<?> parent) {
+
     }
 
     private class FinishReceiver extends BroadcastReceiver {

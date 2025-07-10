@@ -25,6 +25,7 @@
     <color name="shadowInverseLight">#43ffffff</color>
     <color name="shadowInverse">#93ffffff</color>
     <color name="shadowInverseDark">#C4ffffff</color>
+    <color name="shadowInverseDarker">#A9ffffff</color>
 
     <color name="shadowGoldLight">#69D4AF37</color>
     <color name="shadowGold">#83D4AF37</color>

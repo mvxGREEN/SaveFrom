@@ -82,43 +82,6 @@
     <string name="title_menu_upgrade">Upgrade</string>
     <string name="upgrade_body"><![CDATA[✅  Video includes audio\n\n✅  2160p\n\n✅  1440p\n\n✅  Max framerate\n\n✅  Fastest download speed]]></string>
 
-    // privacy policy
-    <string-array name="pp_body" translatable="false">
-        <item><![CDATA[\nPrivacy Policy
-       \nI, MaxGreen, built the SoundLoader service as free mobile application.  This service is offered at no cost, and is intended for use as is.
-       \nThe following policy applies to all apps built by MaxGreen, unless otherwise specified.  This policy is provided to inform users of my practices regarding collection, use, and disclosure of data collected by my downloader services.
-       \nIf you choose to use my service, you agree to the collection and use of information expressed in this policy.
-       \n\n\nInformation Collection, Use, and Third Parties
-       \nSoundLoader collects NO PERSONALLY IDENTIFIABLE INFORMATION!
-       \nHowever, in order to continually improve the in-app experience, some non-personal data is collected using third party services listed below.  Third parties may, or may not, collect undisclosed information for their own purposes…  Sorry, it is the creepy truth.  I can, however, assure my users that I collect NO personally-identifiable information or data.  I actively seek to restrict the flow of my users\' information to third parties.  Below, you can find the list of third parties I do allow to collect data on my behalf.  Privacy Policies for these third parties listed can be accessed using the links provided at the bottom of this page.
-       \n\nGoogle Firebase
-       \n\nUtilizing the aforementioned Third Parties, I may collect the anonymous information to better understand the needs of my audience.  This audience data includes, but may not be limited to, device specifications, operating system specifications, country, city, language, app version, and event data [more on this below].
-	   \n\nLog [Event] Data
-       \n\nUtilizing the aforementioned Third Parties, I may collect event data logged by your device (aka. log data) to assist in identifying and ultimately solving bugs and/or outages.  This data is collected through Firebase Crashlytics, and may include information such as hardware [device] specifications, operating system specifications, the configuration of the app when the event occurred, the time and date of the event, and/or other data points that may assist us in identifying the source of an issue.
-       \n\n\nCookies
-       \n\nCookies are files with a small amount of data that are commonly used as anonymous unique identifiers.  These are sent to your browser from the websites that you visit and are stored on your device\'s internal memory.  My services do not use these \“cookies\” explicitly.  However, usage of my services may indirectly expose the user to third party sites which use \“cookies\” to collect information to improve their services.
-       \n\n\nService Providers
-       \n\nI may employ third-party companies and individuals due to the following reasons:
-       \n\nTo perform data collection and storage on behalf of MaxGreen;
-       \nTo provide the Service on our behalf;
-       \nTo provide security for data collection;
-       \nTo assist in analysis of collected data.
-       \n\nBy virtue of their roles in data collection, these third parties have access to information collected on behalf of MaxGreen. However, they are legally prohibited from disclosing or using said information for any other purpose.
-       \n\n\nSecurity
-       \n\nI strive to protect the data you entrust in me with industry-standard safety practices.  However, no method of data transmission or storage is 100% safe.  Thus, I cannot fully guarantee the security of your data.
-       \n\n\nLinks to Other Sites
-       \n\nThis service contains links to other sites.  These external sites are not operated by me.  Therefore, I strongly advise you to review the Privacy Policy of these websites.  I have no control over and assume no responsibility for the content, privacy policies, or practices of any third-party sites or services.
-       \n\n\nChildren\'s Privacy
-       \n\nThis policy does not address anyone under the age of 13.  I do not knowingly collect information from children under 13.  Should I discover that a child under 13 has provided me with information, I will immediately delete the concerning data from our servers. If you are a parent or guardian and you are aware that your child has provided us with information, please contact us as soon as possible so we can resolve the situation.
-       \n\n\nChanges to This Privacy Policy
-       \n\nI may update this Privacy Policy on occasion, without notice.  Thus, please review this page periodically if you are concerned.
-       \n\nThis policy is effective as of 08/16/2021.
-       \n\n\nContact Us
-       \n\nPlease do not hesitate to reach out with any comments, questions, concerns, or if you have the recipe for a good peach cobbler.  Thanks!
-       \n~MaxGreen
-       \n\nmvxgreen @ gmail . com
-       \n\nhttps://firebase.google.com/support/privacy
-        ]]></item>
-    </string-array>
+
 
 </resources>
