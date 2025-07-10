@@ -80,7 +80,7 @@
     <string name="prefs_key_format_id">FORMAT_ID</string>
     <string name="prefs_key_background_enabled">BACKGROUND_ENABLED</string>
     <string name="title_menu_upgrade">Upgrade</string>
-    <string name="upgrade_body"><![CDATA[✅  Video includes audio\n\n✅  2160p\n\n✅  1440p\n\n✅  Max framerate\n\n✅  Fastest download speed]]></string>
+    <string name="upgrade_body"><![CDATA[✅  2160p (4K) Videos\n\n✅  1440p (2K) Videos\n\n✅  Original Frame Rate (60+ FPS)\n\n✅  Fastest download speed]]></string>
 
 
 

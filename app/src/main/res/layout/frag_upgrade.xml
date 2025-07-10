@@ -41,7 +41,7 @@
         android:id="@+id/subtitle_tv"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="HD Video Downloader"
+        android:text="4K Video Downloader"
         android:textColor="@color/shadowInverse"
         android:textSize="18sp"
         app:layout_constraintStart_toStartOf="parent"
