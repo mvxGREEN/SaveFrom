@@ -276,7 +276,7 @@ public class MainActivity extends AppCompatActivity implements PurchasesUpdatedL
     }
 
     public void loadBillingClient() {
-        Log.i(TAG, "startBillingConnection");
+        Log.i(TAG, "loadBillingClient");
 
         // init billing client
         billingClient = BillingClient.newBuilder(MainActivity.this)
@@ -643,9 +643,11 @@ public class MainActivity extends AppCompatActivity implements PurchasesUpdatedL
      * By Max Green  12/5/2020
      */
     public void showBigFrag(MenuItem mi) {
-        // bundle menu item title
+        showBigFrag(mi.getTitle().toString());
+    }
+
+    public void showBigFrag(String title) {
         Bundle extras = new Bundle();
-        String title = mi.getTitle().toString();
         extras.putString(getString(R.string.key_extra_menu_item_title), title);
 
         // Create fragment, add extras
@@ -1048,13 +1050,26 @@ public class MainActivity extends AppCompatActivity implements PurchasesUpdatedL
         String spinnerItem = parent.getSelectedItem().toString();
         Log.i(TAG, "spinnerItem=" + spinnerItem);
 
+        // check if resolution restricted
+        int p = position;
+        if (!MIsGold && (spinnerItem.contains("2160") || spinnerItem.contains("1440"))) {
+            // show upgrade fragment
+            showBigFrag("Upgrade");
+
+            // set spinner item to 1080p
+            spinnerItem = "1080p";
+
+            // set position to 2
+            p = 2;
+        }
+
         // update var
         mResolution = spinnerItem;
 
         // update shared pref
         SharedPreferences sharedPref = getSharedPreferences("SaveFromPrefs", Context.MODE_PRIVATE);
         SharedPreferences.Editor editor = sharedPref.edit();
-        editor.putInt("RES_POSITION", position);
+        editor.putInt("RES_POSITION", p);
         editor.apply();
     }
 

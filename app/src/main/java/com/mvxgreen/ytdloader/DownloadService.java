@@ -149,7 +149,7 @@ public class DownloadService extends Service {
                 String absFilepath = ABS_PATH_DOCS + prefsManager.getFileName();
                 String absFilepathVideo = absFilepath;
                 String absFilepathAudio = absFilepath;
-                absFilepath = absFilepath + ".mp4";
+                absFilepath = absFilepath + "z.mp4";
 
                 // append file extensions
                 File v = new File(absFilepathVideo+".webm");
@@ -172,9 +172,11 @@ public class DownloadService extends Service {
                 Log.i(TAG, "absFilePathVideo=" + absFilepathVideo
                         + ", absFilePathAudio=" + absFilepathAudio);
 
+                Log.w(TAG, "skipping audio merge");
+
                 // merge video and audio
                 // TODO uncomment
-                ConcatRunner.mergeAV(absFilepath, absFilepathVideo, absFilepathAudio);
+                //ConcatRunner.mergeAV(absFilepath, absFilepathVideo, absFilepathAudio);
 
                 // delete temp files
                 // TODO uncomment
