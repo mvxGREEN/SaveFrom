@@ -9,11 +9,14 @@ def dl_video_with_audio(activity, video_url, out, filename, resolution):
     # 'outtmpl': out + '%(title).25s.%(ext)s',
     progress_hook = create_progress_hook(activity)
 
+    # example formats
     # 'format': "bestvideo[ext=mp4]+bestaudio[ext=m4a]/best[ext=mp4]/best",
+    # 'format': "bestvideo[height<=" + resolution + "], bestaudio",
 
     ydl_opts = {
-        'format': "bestvideo[height<=" + resolution + "], bestaudio",
-        'outtmpl': out + filename + '.%(ext)s',
+        'format': "best[height<=" + resolution + "]/bestvideo[height<=" + resolution + "]",
+        'outtmpl': out + filename + '.mp4',
+        #'cookiesfrombrowser': ('chrome', None, None, None),
         'restrictfilenames': True,
         "cachedir": False,
         "ignoreerrors": True,

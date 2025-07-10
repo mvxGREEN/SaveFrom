@@ -1052,9 +1052,11 @@ public class MainActivity extends AppCompatActivity implements PurchasesUpdatedL
             Log.i(TAG, "onReceive");
             String absFilePath = intent.getStringExtra("FILEPATH");
 
-            // stop download service
-            mDownloadService.stopForeground(true);
-            mDownloadService.stopSelf();
+            // end download service
+            if (mDownloadService != null) {
+                mDownloadService.stopForeground(true);
+                mDownloadService.stopSelf();
+            }
 
             // show error UI if missing filepath
             if (absFilePath == null || absFilePath.isEmpty()) {
@@ -1062,6 +1064,7 @@ public class MainActivity extends AppCompatActivity implements PurchasesUpdatedL
                     Toast.makeText(MainActivity.this, "unknown error", Toast.LENGTH_LONG).show();
                     showEmptyLayout();
                 });
+                return;
             }
 
             // scan new media
