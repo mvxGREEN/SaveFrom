@@ -315,6 +315,14 @@ public class MainActivity extends AppCompatActivity implements PurchasesUpdatedL
             Log.i(TAG, "purchase canceled");
         } else {
             Log.i(TAG, "no purchases found");
+
+            // update shared prefs
+            SharedPreferences sharedPref = getSharedPreferences("SaveFromPrefs", Context.MODE_PRIVATE);
+            SharedPreferences.Editor editor = sharedPref.edit();
+            editor.putBoolean("IS_GOLD", false);
+            editor.apply();
+
+            MIsGold = false;
         }
     }
 
@@ -383,7 +391,7 @@ public class MainActivity extends AppCompatActivity implements PurchasesUpdatedL
 
                     // update ui to gold
                     MainActivity.this.runOnUiThread(() -> {
-                        Toast.makeText(MainActivity.this, "Thanks and enjoy <3", Toast.LENGTH_LONG).show();
+                        Toast.makeText(MainActivity.this, "Thank you, enjoy <3", Toast.LENGTH_LONG).show();
                         Toolbar toolbar = MainActivity.this.findViewById(R.id.toolbar);
                         MenuItem upgradeItem = toolbar.getMenu().findItem(R.id.action_upgrade);
                         upgradeItem.setIcon(ContextCompat.getDrawable(MainActivity.this, R.drawable.diamond_24_gold));
@@ -533,7 +541,7 @@ public class MainActivity extends AppCompatActivity implements PurchasesUpdatedL
 
         // set default resolution
         SharedPreferences sharedPref = getSharedPreferences("SaveFromPrefs", Context.MODE_PRIVATE);
-        int selectionIndex = sharedPref.getInt("RES_POSITION", 3);
+        int selectionIndex = sharedPref.getInt("RES_POSITION", 2);
         spinner.setSelection(selectionIndex);
 
         // spinner item selected listener
@@ -671,6 +679,10 @@ public class MainActivity extends AppCompatActivity implements PurchasesUpdatedL
      * @param v close button (clicked)
      */
     public void closeBigFrag(View v) {
+        closeBigFrag();
+    }
+
+    public void closeBigFrag() {
         ConstraintLayout fragHolder = findViewById(R.id.big_frag_holder);
         fragHolder.setVisibility(View.GONE);
     }
@@ -713,6 +725,7 @@ public class MainActivity extends AppCompatActivity implements PurchasesUpdatedL
     private void showEmptyLayout() {
         Log.i(TAG, "showEmptyLayout");
 
+        closeBigFrag();
         closeFileFrag();
 
         mBinding.imgPreview.setVisibility(View.GONE);
@@ -819,7 +832,7 @@ public class MainActivity extends AppCompatActivity implements PurchasesUpdatedL
     private void showDownloadingLayout() {
         Log.i(TAG, "showDownloadingLayout()");
 
-        Toast.makeText(this, "Downloading…", Toast.LENGTH_SHORT).show();
+        Toast.makeText(this, "Downloading in background…", Toast.LENGTH_SHORT).show();
 
         updateFilenamePref();
         mBinding.btnDownload.setEnabled(false);
@@ -1052,25 +1065,32 @@ public class MainActivity extends AppCompatActivity implements PurchasesUpdatedL
         String spinnerItem = parent.getSelectedItem().toString();
         Log.i(TAG, "spinnerItem=" + spinnerItem);
 
+        // update gold status
+        SharedPreferences sharedPref = getSharedPreferences("SaveFromPrefs", Context.MODE_PRIVATE);
+        MIsGold = sharedPref.getBoolean("IS_GOLD", false);
+
         // check if resolution restricted
         int p = position;
-        if (!MIsGold && (spinnerItem.contains("2160") || spinnerItem.contains("1440"))) {
-            // show upgrade fragment
-            showBigFrag("Upgrade");
+        if (position == 0 || position == 1) {
+            Log.i(TAG, "gold resolution selected");
+            if (MIsGold) {
+                Log.i(TAG, "allowing gold resolution");
+            } else {
+                // show upgrade fragment
+                showBigFrag("Upgrade");
 
-            // set spinner item to 1080p
-            spinnerItem = "1080p";
-
-            // set position to 2
-            p = 2;
-            parent.setSelection(p);
+                // set spinner item to 1080p
+                spinnerItem = "1080p";
+                p = 2;
+                parent.setSelection(p);
+            }
         }
 
         // update var
         mResolution = spinnerItem;
 
         // update shared pref
-        SharedPreferences sharedPref = getSharedPreferences("SaveFromPrefs", Context.MODE_PRIVATE);
+        sharedPref = getSharedPreferences("SaveFromPrefs", Context.MODE_PRIVATE);
         SharedPreferences.Editor editor = sharedPref.edit();
         editor.putInt("RES_POSITION", p);
         editor.apply();

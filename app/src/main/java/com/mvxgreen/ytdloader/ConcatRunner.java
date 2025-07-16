@@ -172,29 +172,15 @@ public final class ConcatRunner {
 
 
     /**
-     * Delete chunk files
+     * Delete temp files
      */
     public static boolean deleteTempFiles(String vfp, String afp) {
         Log.i(TAG, "deleteTempFiles: " + vfp + ", " + afp);
         boolean audioDeleted = false;
         File audioFile = new File(afp);
-        if (audioFile.exists()) {
-            audioDeleted = audioFile.delete();
-            Log.d(TAG, "Audio file " + afp + " deleted: " + audioDeleted);
-        } else {
-            Log.d(TAG, "Audio file " + afp + " not found.");
-        }
+        audioDeleted = audioFile.delete();
 
-        boolean videoDeleted = false;
-        File videoFile = new File(vfp);
-        if (videoFile.exists()) {
-            videoDeleted = videoFile.delete();
-            Log.d(TAG, "Video file " + vfp + " deleted: " + videoDeleted);
-        } else {
-            Log.d(TAG, "Video file " + vfp + " not found.");
-        }
-        return audioDeleted && videoDeleted; // Or handle individual success/failure as needed
+        return audioDeleted;
     }
 
-    // ... (rest of your ConcatRunner class)
 }

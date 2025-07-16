@@ -90,6 +90,7 @@ public class DownloadService extends Service {
     //async method to extract audio from video in background
     public static class DownloadVideoTask extends AsyncTask<String, Void, String> {
         private static final String TAG = DownloadVideoTask.class.getCanonicalName();
+        String vidExt, audExt = ".m4a";
         PrefsManager prefsManager;
 
         public DownloadVideoTask(Context ctx) {
@@ -101,9 +102,14 @@ public class DownloadService extends Service {
         protected String doInBackground(String... urls) {
             Log.i(TAG, "doInBackground()");
             String videoUrl = urls[0];
+            String resolution = mResolution.replaceAll("\\D", "");
 
             Python py = Python.getInstance();
             PyObject pyObject = py.getModule("vidloader");
+
+            // get video file extension
+            PyObject resExt = pyObject.callAttr("extract_video_ext", videoUrl, resolution);
+            vidExt = "." + resExt.toString();
 
             String res = "";
             try {
@@ -113,7 +119,7 @@ public class DownloadService extends Service {
                         videoUrl,
                         ABS_PATH_DOCS,
                         prefsManager.getFileName(),
-                        mResolution.replaceAll("\\D", ""));
+                        resolution);
                 res = result.toString();
                 Log.i(TAG, "format_ids: "+ res);
                 prefsManager.setFormatId(res);
@@ -128,72 +134,35 @@ public class DownloadService extends Service {
                 MainActivity.activityCurrent.sendBroadcast(intent);
             }
 
-            // merge if necessary
-            if (prefsManager.getFormatId().contains("+")) {
-
-            }
-
             return res;
         }
 
         @Override
         protected void onPostExecute(String s) {
-            Log.i(TAG, "OnPostExecute format_id=" + s);
+            Log.i(TAG, "OnPostExecute");
 
-            /*
-            try {
-                // split format ids
-                String fIds = prefsManager.getFormatId();
-                Log.i(TAG, "fIds=" + fIds);
+            // build filepaths
+            String absFilepath = ABS_PATH_DOCS + prefsManager.getFileName();
+            String absFilepathVideo = absFilepath + vidExt;
+            String absFilepathAudio = absFilepath + audExt;
+            absFilepath += vidExt;
 
-                // build filepaths
-                String absFilepath = ABS_PATH_DOCS + prefsManager.getFileName();
-                String absFilepathVideo = absFilepath;
-                String absFilepathAudio = absFilepath;
-                absFilepath += ".mp4";
+            Log.i(TAG, "absFilePathVideo=" + absFilepathVideo
+                    + ", absFilePathAudio=" + absFilepathAudio);
 
-                // append file extensions
-                File v = new File(absFilepathVideo+".webm");
-                File a = new File(absFilepathAudio+".webm");
-                if (v.exists()) {
-                    Log.i(TAG, ".webm video file detected");
-                    absFilepathVideo = absFilepathVideo+".webm";
-                } else {
-                    Log.i(TAG, ".mp4 video file detected");
-                    absFilepathVideo = absFilepathVideo+".mp4";
-                }
-                if (a.exists()) {
-                    Log.i(TAG, ".webm audio file detected");
-                    absFilepathAudio = absFilepathAudio+".webm";
-                } else {
-                    Log.i(TAG, ".m4a audio file detected");
-                    absFilepathAudio = absFilepathAudio+".m4a";
-                }
-
-                Log.i(TAG, "absFilePathVideo=" + absFilepathVideo
-                        + ", absFilePathAudio=" + absFilepathAudio);
-
-                Log.w(TAG, "skipping audio merge");
-
+            if (!vidExt.equals(".webm")) {
+                Log.i(TAG, "merging video & audio files");
                 // merge video and audio
-                // TODO uncomment
                 //ConcatRunner.mergeAV(absFilepath, absFilepathVideo, absFilepathAudio);
 
-                // delete temp files
-                // TODO uncomment
+                // delete temp AV files
                 //ConcatRunner.deleteTempFiles(absFilepathVideo, absFilepathAudio);
-            } catch (Exception e) {
-                Log.e(TAG, "merge failed!");
-                e.printStackTrace();
+            } else {
+                Log.i(TAG, "not merging video & audio files");
             }
-             */
 
             // scan new media
-            String ext = prefsManager.getFileExt();
-            String absFilePath = ABS_PATH_DOCS + prefsManager.getFileName() + "." + ext;
-            Log.i(TAG, "absolute filepath: " + absFilePath);
-
-            File dl = new File(absFilePath);
+            File dl = new File(absFilepath);
             if (dl.exists()) {
                 FileTime now = null;
                 if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
@@ -208,7 +177,7 @@ public class DownloadService extends Service {
             }
 
             Intent intent = new Intent("69");
-            intent.putExtra("FILEPATH", absFilePath);
+            intent.putExtra("FILEPATH", absFilepath);
             MainActivity.activityCurrent.sendBroadcast(intent);
         }
     }

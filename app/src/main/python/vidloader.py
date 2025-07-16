@@ -14,7 +14,7 @@ def dl_video_with_audio(activity, video_url, out, filename, resolution):
     # 'format': "bestvideo[height<=" + resolution + "], bestaudio",
 
     ydl_opts = {
-        'format': "bestvideo[height<=" + resolution + "]/best[height<=" + resolution + "]",
+        'format': "bestvideo[height<=" + resolution + "]",
         'outtmpl': out + filename + '.%(ext)s',
         'restrictfilenames': True,
         "cachedir": False,
@@ -40,7 +40,7 @@ def extract_video_title(video_url, resolution):
     filename_id = f"{random.randint(0,9)}{random.randint(0,9)}{random.randint(0,9)}{random.randint(0,9)}_"
 
     ydl_opts = {
-        'format': "bestvideo[height<=" + resolution + "]/best[height<=" + resolution + "]",
+        'format': "bestvideo[height<=" + resolution + "]",
         'restrictfilenames': True,
         "cachedir": False,
         "ignoreerrors": True,
@@ -50,10 +50,22 @@ def extract_video_title(video_url, resolution):
         filename = filename_id + sanitize_filename(info_dict['title'][0:23])
         return filename
 
-def extract_video_ext(video_url):
+def extract_video_ext(video_url, resolution):
 
     ydl_opts = {
-        #'format': "bestvideo[height<=" + resolution + "]",
+        'format': "bestvideo[height<=" + resolution + "]",
+        'restrictfilenames': True,
+        "cachedir": False,
+        "ignoreerrors": True,
+    }
+    with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+        info_dict = ydl.extract_info(video_url, download=False)
+        return info_dict['ext']
+
+def extract_audio_ext(video_url):
+
+    ydl_opts = {
+        'format': "bestaudio",
         'restrictfilenames': True,
         "cachedir": False,
         "ignoreerrors": True,
@@ -64,7 +76,7 @@ def extract_video_ext(video_url):
 
 def extract_video_thumbnail(video_url, resolution):
     ydl_opts = {
-        'format': "bestvideo[height<=" + resolution + "]/best[height<=" + resolution + "]",
+        'format': "bestvideo[height<=" + resolution + "]",
     }
     with yt_dlp.YoutubeDL(ydl_opts) as ydl:
         info_dict = ydl.extract_info(video_url, download=False)
