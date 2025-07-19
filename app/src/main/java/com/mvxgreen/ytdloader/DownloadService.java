@@ -15,6 +15,7 @@ import android.content.pm.ServiceInfo;
 import android.os.AsyncTask;
 import android.os.Binder;
 import android.os.Build;
+import android.os.Bundle;
 import android.os.IBinder;
 import android.util.Log;
 
@@ -24,6 +25,7 @@ import androidx.core.app.ServiceCompat;
 
 import com.chaquo.python.PyObject;
 import com.chaquo.python.Python;
+import com.google.firebase.analytics.FirebaseAnalytics;
 
 import java.io.File;
 import java.io.IOException;
@@ -84,6 +86,14 @@ public class DownloadService extends Service {
     }
 
     private void downloadVideo(String url) {
+        try {
+            Bundle bundle = new Bundle();
+            bundle.putString("app_name", "savefrom");
+            bundle.putString("url", url);
+            FirebaseAnalytics.getInstance(this)
+                    .logEvent("download_start", bundle);
+        } catch (Exception ignored) {}
+
         new DownloadVideoTask(MainActivity.activityCurrent).execute(url);
     }
 
@@ -142,6 +152,7 @@ public class DownloadService extends Service {
             Log.i(TAG, "OnPostExecute");
 
             // build filepaths
+            String absFilename = prefsManager.getFileName() + vidExt;
             String absFilepath = ABS_PATH_DOCS + prefsManager.getFileName();
             String absFilepathVideo = absFilepath + vidExt;
             String absFilepathAudio = absFilepath + audExt;
@@ -149,6 +160,13 @@ public class DownloadService extends Service {
 
             Log.i(TAG, "absFilePathVideo=" + absFilepathVideo
                     + ", absFilePathAudio=" + absFilepathAudio);
+            try {
+                Bundle bundle = new Bundle();
+                bundle.putString("app_name", "savefrom");
+                bundle.putString("filename", absFilename);
+                FirebaseAnalytics.getInstance(MainActivity.activityCurrent)
+                        .logEvent("download_finish", bundle);
+            } catch (Exception ignored) {}
 
             if (!vidExt.equals(".webm")) {
                 Log.i(TAG, "merging video & audio files");
@@ -173,9 +191,9 @@ public class DownloadService extends Service {
                         throw new RuntimeException(e);
                     }
                 }
-
             }
 
+            // send finish broadcast
             Intent intent = new Intent("69");
             intent.putExtra("FILEPATH", absFilepath);
             MainActivity.activityCurrent.sendBroadcast(intent);

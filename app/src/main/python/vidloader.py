@@ -76,7 +76,7 @@ def extract_audio_ext(video_url):
 
 def extract_video_thumbnail(video_url, resolution):
     ydl_opts = {
-        'format': "bestvideo[height<=" + resolution + "]",
+        'format': "best[height<=" + resolution + "]/bestvideo[height<=" + resolution + "]",
     }
     with yt_dlp.YoutubeDL(ydl_opts) as ydl:
         info_dict = ydl.extract_info(video_url, download=False)

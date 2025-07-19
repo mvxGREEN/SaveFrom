@@ -189,6 +189,14 @@ public class MainActivity extends AppCompatActivity implements PurchasesUpdatedL
         launchBillingFlow();
     }
 
+    public void onGetInflyerClick(View v) {
+        // open inflyer in google play
+        String playStoreUrl = "https://play.google.com/store/apps/details?id=green.mobileapps.downloader4inflact";
+        Intent intent = new Intent(Intent.ACTION_VIEW);
+        intent.setData(Uri.parse(playStoreUrl));
+        startActivity(intent);
+    }
+
     public void launchBillingFlow() {
         Log.i(TAG, "launchBillingFlow");
         if (MBillingFlowParams != null) {
@@ -337,6 +345,15 @@ public class MainActivity extends AppCompatActivity implements PurchasesUpdatedL
                     // return if empty
                     if (list.size() == 0) {
                         Log.i(TAG, "no purchases found");
+
+                        // update shared prefs
+                        SharedPreferences sharedPref = getSharedPreferences("SaveFromPrefs", Context.MODE_PRIVATE);
+                        SharedPreferences.Editor editor = sharedPref.edit();
+                        editor.putBoolean("IS_GOLD", false);
+                        editor.apply();
+
+                        MIsGold = false;
+
                         return;
                     }
 
@@ -476,39 +493,43 @@ public class MainActivity extends AppCompatActivity implements PurchasesUpdatedL
                     showEmptyLayout();
                 } else if (count - oldCount > 1) {
                     String input = s.toString();
-                    String domain = "";
 
-                    // validate and trim input
-                    boolean isValid = true;
-                    if (input.contains("https://")) {
-                        input = input.substring(input.indexOf("https://")+8);
-                        if (input.contains("/")) {
-                            domain = input.substring(0, input.lastIndexOf("/"));
-                        }
-                        input = "https://" + input;
-                    } else {
-                        isValid = false;
+                    // validate input
+                    if (!input.contains("https://")) {// log event
+                        // log invalid input and exit
+                        try {
+                            Bundle bundle = new Bundle();
+                            bundle.putString("app_name", "savefrom");
+                            bundle.putString("input", input);
+                            FirebaseAnalytics.getInstance(MainActivity.this)
+                                    .logEvent("invalid_input", bundle);
+                        } catch (Exception ignored) {}
+
+                        Toast.makeText(MainActivity.this, "Please copy a video URL", Toast.LENGTH_SHORT).show();
+                        return;
+                    } else if (input.contains("instagram.com")) {
+                        showBigFrag("InFlyer");
+                        return;
                     }
-                    final String inputText = input;
 
-                    // log event
+                    final String inputText = input;
+                    String domain = input.substring(input.indexOf("https://")+8);
+                    if (input.contains("/")) {
+                        domain = input.substring(0, input.indexOf("/"));
+                    }
+                    input = "https://" + input;
+
+                    // log valid input
                     try {
                         Bundle bundle = new Bundle();
-                        bundle.putString("input", "load");
-                        bundle.putBoolean("input_valid", isValid);
-                        bundle.putString("input_text", inputText);
-                        bundle.putString("input_domain", domain);
-                        bundle.putString("app_name", "videoloader");
+                        bundle.putString("app_name", "savefrom");
+                        bundle.putString("input", input);
+                        bundle.putString("domain", domain);
                         FirebaseAnalytics.getInstance(MainActivity.this)
-                                .logEvent("input_load", bundle);
+                                .logEvent("valid_input", bundle);
                     } catch (Exception ignored) {}
 
                     killKeyboard();
-
-                    if (!isValid) {
-                        Toast.makeText(MainActivity.this, "Please copy a video URL", Toast.LENGTH_SHORT).show();
-                    }
-
                     showLoadingLayout();
 
                     // check for internet & valid url

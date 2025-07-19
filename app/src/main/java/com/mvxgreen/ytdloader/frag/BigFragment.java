@@ -33,6 +33,8 @@ public class BigFragment extends Fragment {
         // Check menu item title; inflate proper fragment
         if (title.equals("Enable Notifications")) {
             rootView = inflater.inflate(R.layout.frag_justify_notifications, container, false);
+        } else if (title.equals("InFlyer")) {
+            rootView = inflater.inflate(R.layout.frag_inflyer, container, false);
         } else {
             rootView = inflater.inflate(R.layout.frag_upgrade, container, false);
         }
