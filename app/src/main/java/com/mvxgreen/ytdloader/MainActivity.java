@@ -513,11 +513,13 @@ public class MainActivity extends AppCompatActivity implements PurchasesUpdatedL
                     }
 
                     final String inputText = input;
+                    if (!input.contains("https://")) {
+                        input = "https://" + input;
+                    }
                     String domain = input.substring(input.indexOf("https://")+8);
                     if (input.contains("/")) {
                         domain = input.substring(0, input.indexOf("/"));
                     }
-                    input = "https://" + input;
 
                     // log valid input
                     try {
