@@ -896,6 +896,13 @@ public class MainActivity extends AppCompatActivity implements PurchasesUpdatedL
                     .centerCrop()
                     .into(mBinding.imgPreview, previewCallback);
         }
+
+        // show interstitial ad
+        runOnUiThread(() -> {
+            if (!MIsGold) {
+                AdsManager.showInterstitialAd(MainActivity.this);
+            }
+        });
     }
 
     private final Callback previewCallback = new Callback() {
