@@ -168,16 +168,11 @@ public class DownloadService extends Service {
                         .logEvent("download_finish", bundle);
             } catch (Exception ignored) {}
 
-            if (!vidExt.equals(".webm")) {
-                Log.i(TAG, "merging video & audio files");
-                // merge video and audio
-                //ConcatRunner.mergeAV(absFilepath, absFilepathVideo, absFilepathAudio);
+            // TODO merge video and audio
+            //ConcatRunner.mergeAV(absFilepath, absFilepathVideo, absFilepathAudio);
 
-                // delete temp AV files
-                //ConcatRunner.deleteTempFiles(absFilepathVideo, absFilepathAudio);
-            } else {
-                Log.i(TAG, "not merging video & audio files");
-            }
+            // TODO delete temp AV files
+            //ConcatRunner.deleteTempFiles(absFilepathVideo, absFilepathAudio);
 
             // scan new media
             File dl = new File(absFilepath);

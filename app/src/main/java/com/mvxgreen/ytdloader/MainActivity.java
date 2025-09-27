@@ -107,13 +107,7 @@ public class MainActivity extends AppCompatActivity implements PurchasesUpdatedL
 
     static String mResolution = "1080p";
 
-    // BILLING
-    private PurchasesUpdatedListener purchasesUpdatedListener = new PurchasesUpdatedListener() {
-        @Override
-        public void onPurchasesUpdated(BillingResult billingResult, List<Purchase> purchases) {
-            // To be implemented in a later section.
-        }
-    };
+    // billing
     public static boolean MIsGold = false;
     private BillingClient billingClient;
 
@@ -288,7 +282,7 @@ public class MainActivity extends AppCompatActivity implements PurchasesUpdatedL
 
         // init billing client
         billingClient = BillingClient.newBuilder(MainActivity.this)
-                .setListener(purchasesUpdatedListener)
+                .setListener(MainActivity.this)
                 .enablePendingPurchases(PendingPurchasesParams.newBuilder().enableOneTimeProducts().enablePrepaidPlans().build())
                 .enableAutoServiceReconnection()
                 .build();
