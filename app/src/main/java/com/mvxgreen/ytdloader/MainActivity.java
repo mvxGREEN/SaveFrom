@@ -873,6 +873,13 @@ public class MainActivity extends AppCompatActivity implements PurchasesUpdatedL
         mBinding.glowingLoader.setVisibility(View.VISIBLE);
         mBinding.ivCircle.setVisibility(View.INVISIBLE);
         mBinding.btnPaste.setVisibility(View.GONE);
+
+        // show interstitial ad
+        runOnUiThread(() -> {
+            if (!MIsGold) {
+                AdsManager.showInterstitialAd(MainActivity.this);
+            }
+        });
     }
 
     private void showPreviewLayout() {
@@ -899,13 +906,6 @@ public class MainActivity extends AppCompatActivity implements PurchasesUpdatedL
                     .centerCrop()
                     .into(mBinding.imgPreview, previewCallback);
         }
-
-        // show interstitial ad
-        runOnUiThread(() -> {
-            if (!MIsGold) {
-                AdsManager.showInterstitialAd(MainActivity.this);
-            }
-        });
     }
 
     private final Callback previewCallback = new Callback() {
@@ -1185,10 +1185,6 @@ public class MainActivity extends AppCompatActivity implements PurchasesUpdatedL
         String spinnerItem = parent.getSelectedItem().toString();
         Log.i(TAG, "spinnerItem=" + spinnerItem);
 
-        // update gold status
-        SharedPreferences sharedPref = getSharedPreferences("SaveFromPrefs", Context.MODE_PRIVATE);
-        MIsGold = sharedPref.getBoolean("IS_GOLD", false);
-
         int p = position;
 
         /* check if resolution restricted
@@ -1211,8 +1207,8 @@ public class MainActivity extends AppCompatActivity implements PurchasesUpdatedL
         // update var
         mResolution = spinnerItem;
 
-        // update shared pref
-        sharedPref = getSharedPreferences("SaveFromPrefs", Context.MODE_PRIVATE);
+        // update resolution in shared prefs
+        SharedPreferences sharedPref = getSharedPreferences("ULOADER_PREFS", Context.MODE_PRIVATE);
         SharedPreferences.Editor editor = sharedPref.edit();
         editor.putInt("RES_POSITION", p);
         editor.apply();
