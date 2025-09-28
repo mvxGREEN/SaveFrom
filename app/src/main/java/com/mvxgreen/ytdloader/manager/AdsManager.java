@@ -1,4 +1,4 @@
-package com.mvxgreen.ytdloader;
+package com.mvxgreen.ytdloader.manager;
 
 import android.app.Dialog;
 import android.content.Intent;
@@ -25,6 +25,8 @@ import com.google.android.gms.ads.FullScreenContentCallback;
 import com.google.android.gms.ads.LoadAdError;
 import com.google.android.gms.ads.interstitial.InterstitialAd;
 import com.google.android.gms.ads.interstitial.InterstitialAdLoadCallback;
+import com.mvxgreen.ytdloader.MainActivity;
+import com.mvxgreen.ytdloader.R;
 import com.mvxgreen.ytdloader.databinding.ActivityMainBinding;
 
 public class AdsManager {

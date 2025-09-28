@@ -1,6 +1,6 @@
 package com.mvxgreen.ytdloader;
 
-import static com.mvxgreen.ytdloader.MediaManager.MIME_MP4;
+import static com.mvxgreen.ytdloader.manager.MediaManager.MIME_MP4;
 
 import android.Manifest;
 import android.annotation.SuppressLint;
@@ -85,6 +85,9 @@ import com.google.firebase.analytics.FirebaseAnalytics;
 import com.mvxgreen.ytdloader.databinding.ActivityMainBinding;
 import com.mvxgreen.ytdloader.frag.BigFragment;
 import com.mvxgreen.ytdloader.frag.FileFragment;
+import com.mvxgreen.ytdloader.manager.AdsManager;
+import com.mvxgreen.ytdloader.manager.MediaManager;
+import com.mvxgreen.ytdloader.manager.PrefsManager;
 import com.squareup.picasso.Callback;
 import com.squareup.picasso.Picasso;
 

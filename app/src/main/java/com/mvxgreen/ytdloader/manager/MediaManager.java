@@ -1,11 +1,10 @@
-package com.mvxgreen.ytdloader;
+package com.mvxgreen.ytdloader.manager;
 
-import android.content.Intent;
 import android.media.MediaScannerConnection;
 import android.net.Uri;
 import android.util.Log;
 
-import java.io.File;
+import com.mvxgreen.ytdloader.MainActivity;
 
 public class MediaManager implements
         MediaScannerConnection.MediaScannerConnectionClient {

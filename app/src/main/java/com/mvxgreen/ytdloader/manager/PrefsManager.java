@@ -1,8 +1,10 @@
-package com.mvxgreen.ytdloader;
+package com.mvxgreen.ytdloader.manager;
 
 import android.content.Context;
 import android.content.SharedPreferences;
 import android.util.Log;
+
+import com.mvxgreen.ytdloader.R;
 
 /**
  * Provide access to formatting & shared preferences routines & constants
