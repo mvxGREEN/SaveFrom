@@ -595,9 +595,7 @@ public class MainActivity extends AppCompatActivity implements PurchasesUpdatedL
 
         LocalDate specificDate = LocalDate.of(2025, 12, 4);
 
-        boolean isBefore = currentDate.isBefore(specificDate);
-
-        return isBefore;
+        return currentDate.isBefore(specificDate);
     }
 
     private void initMainViews() {

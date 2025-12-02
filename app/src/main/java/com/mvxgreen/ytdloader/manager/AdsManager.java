@@ -54,16 +54,11 @@ public class AdsManager {
      * @param main main activity
      */
     public static void showLocalAd(int runs, MainActivity main) {
-        int adIndex = (runs%3);
+        int adIndex = (runs%9);
         switch (adIndex){
-            case 0:
-                showSpotiflyerAd(main, adIndex);
-                break;
             case 1:
+            case 7:
                 showRateAd(main);
-                break;
-            case 2:
-
                 break;
             default:
 

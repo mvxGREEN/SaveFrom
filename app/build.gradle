@@ -10,10 +10,10 @@ android {
 
     defaultConfig {
         applicationId "com.mvxgreen.ytdloader"
-        minSdk 26
+        minSdk 24
         targetSdk 36
-        versionCode 18
-        versionName "2.3.8"
+        versionCode 19
+        versionName "2.3.9"
 
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
 
