@@ -21,8 +21,6 @@ android {
             abiFilters   "arm64-v8a", "x86_64"
         }
 
-        buildConfigField "String", "API_KEY", "\"${API_KEY}\""
-
         sourceSets{
             main{
                 python {

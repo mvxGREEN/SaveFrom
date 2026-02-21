@@ -36,9 +36,6 @@ public class AdsManager {
     private static final String PKG_SPOTIFLYER = "com.mvxgreen.spotloader",
             MSG_BAD_TOKEN_EXCEPTION = "caught bad token exception!";
 
-    // INTERSTITIAL
-    // REAL ID:
-    // TEST ID:
     private static final String ID_INTER_REAL = "ca-app-pub-7417392682402637/2662302255",
             ID_INTER_TEST = "ca-app-pub-3940256099942544/1033173712",
             ID_BANNER_REAL = "ca-app-pub-7417392682402637/2853873948",
