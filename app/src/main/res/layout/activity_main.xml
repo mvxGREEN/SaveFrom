@@ -169,8 +169,8 @@
                             app:layout_constraintLeft_toLeftOf="parent"
                             app:layout_constraintRight_toRightOf="parent"
                             app:layout_constraintTop_toTopOf="parent"
-                            app:theglowingloader_line_1_color="@color/mvxPink"
-                            app:theglowingloader_line_2_color="@color/colorWhite"
+                            app:theglowingloader_line_1_color="@color/colorPrimary"
+                            app:theglowingloader_line_2_color="@color/colorAccent"
                             android:visibility="gone"/>
 
                         <!-- BUTTON PANEL -->

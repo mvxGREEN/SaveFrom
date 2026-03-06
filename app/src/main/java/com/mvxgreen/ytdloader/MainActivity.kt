@@ -29,7 +29,6 @@ import com.android.billingclient.api.*
 import com.chaquo.python.Python
 import com.chaquo.python.android.AndroidPlatform
 import com.google.android.gms.ads.MobileAds
-import com.google.android.ump.ConsentForm
 import com.google.android.ump.ConsentInformation
 import com.google.android.ump.ConsentRequestParameters
 import com.google.android.ump.UserMessagingPlatform
@@ -73,8 +72,8 @@ class MainActivity : AppCompatActivity(), PurchasesUpdatedListener, AdapterView.
         private val TAG = MainActivity::class.java.canonicalName
 
         @JvmField
-        val ABS_PATH_DOCS: String = Environment.getExternalStoragePublicDirectory(
-            Environment.DIRECTORY_DOCUMENTS
+        val ABS_PATH_MOVIES: String = Environment.getExternalStoragePublicDirectory(
+            Environment.DIRECTORY_MOVIES
         ).absolutePath + "/"
 
         @SuppressLint("StaticFieldLeak")
@@ -641,7 +640,7 @@ class MainActivity : AppCompatActivity(), PurchasesUpdatedListener, AdapterView.
     fun showFileFrag() {
         val fileName = prefsManager.fileName
         val fileExt = prefsManager.fileExt
-        val absPath = "$ABS_PATH_DOCS$fileName.$fileExt"
+        val absPath = "$ABS_PATH_MOVIES$fileName.$fileExt"
 
         runOnUiThread {
             val extras = Bundle().apply {
@@ -684,10 +683,10 @@ class MainActivity : AppCompatActivity(), PurchasesUpdatedListener, AdapterView.
         mBinding.btnDownload.isEnabled = false
         mBinding.numProgress.visibility = View.GONE
         mBinding.ivCircle.visibility = View.GONE
-        mBinding.btnPaste.visibility = View.VISIBLE
         mBinding.filenameEdittext.isEnabled = false
         mBinding.filenameEdittext.setHintTextColor(getColor(R.color.shadowInvisible))
         mBinding.filenameEdittext.setText("")
+        mBinding.btnPaste.isEnabled = true
 
         if (!isBackgroundEnabled) {
             Log.i(TAG, "showing permission holder")
@@ -707,7 +706,7 @@ class MainActivity : AppCompatActivity(), PurchasesUpdatedListener, AdapterView.
         mBinding.glowingLoader.startAnimation(fadeIn)
         mBinding.glowingLoader.visibility = View.VISIBLE
         mBinding.ivCircle.visibility = View.GONE
-        mBinding.btnPaste.visibility = View.GONE
+        mBinding.btnPaste.isEnabled = false
 
         runOnUiThread {
             if (!MIsGold) {
@@ -721,9 +720,9 @@ class MainActivity : AppCompatActivity(), PurchasesUpdatedListener, AdapterView.
         val thumbnailUrl = prefsManager.thumbnailUrl
 
         updateEditFilenameView(prefsManager.fileName!!)
-        mBinding.btnPaste.visibility = View.GONE
         mBinding.imgPreview.alpha = 1.0f
         mBinding.imgPreview.visibility = View.VISIBLE
+        mBinding.btnPaste.isEnabled = true
 
         val builder = Picasso.Builder(this@MainActivity)
         builder.listener { _, _, _ ->
@@ -744,7 +743,6 @@ class MainActivity : AppCompatActivity(), PurchasesUpdatedListener, AdapterView.
             mBinding.glowingLoader.startAnimation(fadeOut)
             mBinding.glowingLoader.visibility = View.GONE
             mBinding.numProgress.visibility = View.GONE
-
             mBinding.ivCircle.visibility = View.VISIBLE
             (mBinding.ivCircle.drawable as Animatable).start()
 
@@ -760,11 +758,9 @@ class MainActivity : AppCompatActivity(), PurchasesUpdatedListener, AdapterView.
         override fun onError(e: Exception) {
             Log.e("onPicassoFinished", ".onError()")
             e.printStackTrace()
-            mBinding.btnPaste.visibility = View.GONE
             mBinding.glowingLoader.startAnimation(fadeOut)
             mBinding.glowingLoader.visibility = View.GONE
             mBinding.imgPreview.visibility = View.GONE
-
             mBinding.ivCircle.visibility = View.GONE
             //(mBinding.ivCircle.drawable as Animatable).start()
 
@@ -784,13 +780,13 @@ class MainActivity : AppCompatActivity(), PurchasesUpdatedListener, AdapterView.
 
         updateFilenamePref()
         mBinding.btnDownload.isEnabled = false
-        mBinding.ivCircle.startAnimation(fadeOut)
         mBinding.btnDownload.startAnimation(fadeOut)
         mBinding.ivCircle.visibility = View.GONE
         mBinding.btnDownload.visibility = View.GONE
         mBinding.imgPreview.alpha = 0.69f
         mBinding.numProgress.visibility = View.VISIBLE
         mBinding.numProgress.progress = 0
+        mBinding.btnPaste.isEnabled = false
 
         Handler(Looper.getMainLooper()).postDelayed({
             mBinding.glowingLoader.startAnimation(fadeIn)
@@ -808,7 +804,6 @@ class MainActivity : AppCompatActivity(), PurchasesUpdatedListener, AdapterView.
         mBinding.imgPreview.alpha = 1.0f
         mBinding.btnDownload.visibility = View.GONE
         mBinding.btnDownload.isEnabled = false
-        mBinding.btnPaste.visibility = View.VISIBLE
         mBinding.btnPaste.isEnabled = true
         mBinding.ivCircle.visibility = View.GONE
         mBinding.numProgress.visibility = View.GONE
@@ -855,7 +850,7 @@ class MainActivity : AppCompatActivity(), PurchasesUpdatedListener, AdapterView.
             Log.e(TAG, e.toString())
 
             runOnUiThread {
-                Toast.makeText(this@MainActivity, "Unsupported URL", Toast.LENGTH_SHORT).show()
+                Toast.makeText(this@MainActivity, "error loading, please try again", Toast.LENGTH_SHORT).show()
                 showEmptyLayout()
             }
             return
