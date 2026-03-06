@@ -1,25 +1,306 @@
-package com.mvxgreen.ytdloader.manager;
+package com.mvxgreen.ytdloader.manager
 
-import android.content.Context;
-import android.content.SharedPreferences;
-import android.util.Log;
-
-import com.mvxgreen.ytdloader.R;
+import android.content.Context
+import android.content.SharedPreferences
+import android.util.Log
+import com.mvxgreen.ytdloader.R
 
 /**
  * Provide access to formatting & shared preferences routines & constants
  */
-public class PrefsManager {
-    private static final String TAG = PrefsManager.class.getCanonicalName();
+class PrefsManager(ctx: Context) {
+    // ~~~~~~~~~~~~~~~~~~~~~~~~~~  SHARED PREFERENCES  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    var sharedPrefs: SharedPreferences? = null
 
     // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~  CONSTRUCTOR  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-    public PrefsManager(Context ctx) {
-        initSharedPrefs(ctx);
+    init {
+        initSharedPrefs(ctx)
     }
 
-    // ~~~~~~~~~~~~~~~~~~~~~~~~~~  SHARED PREFERENCES  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-    SharedPreferences sharedPrefs;
-    private static final int[] KEY_IDS = {
+    /**
+     * Initialize Shared Preferences
+     * @param ctx main activity
+     */
+    fun initSharedPrefs(ctx: Context) {
+        // Create & store default values, if necessary
+        try {
+            sharedPrefs = ctx.getSharedPreferences(
+                "ULOADER_PREFS",
+                Context.MODE_PRIVATE
+            )
+
+            val editor = sharedPrefs!!.edit()
+
+            // total runs
+            if (!sharedPrefs!!.contains("IS_GOLD")) {
+                editor.putBoolean(
+                    "IS_GOLD",
+                    false
+                )
+            }
+            editor.apply()
+
+            // total runs
+            if (!sharedPrefs!!.contains("TOTAL_RUNS")) {
+                editor.putInt(
+                    "TOTAL_RUNS",
+                    0
+                )
+            }
+            editor.apply()
+
+            // other default values
+            if (!sharedPrefs!!.contains("TOTAL_CONVERSIONS")) {
+                editor.putInt(
+                    "TOTAL_CONVERSIONS",
+                    0
+                )
+            }
+
+            // default string values
+            for (i in KEY_IDS.indices) {
+                val key = ctx.getString(KEY_IDS[i])
+                if (!sharedPrefs!!.contains(key)) {
+                    editor.putString(
+                        key,
+                        ""
+                    )
+                    editor.apply()
+                }
+            }
+        } catch (e: NullPointerException) {
+            Log.e(TAG, "Edge Error: NullPointer during initSharedPrefs")
+            e.printStackTrace()
+        }
+    }
+
+    // ~~~~~~~~~~~~~~~~~~~~~~~~  GETTERS/SETTERS  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+    var backgroundEnabled: String?
+        get() = sharedPrefs!!.getString("BACKGROUND_ENABLED", "")
+        set(value) {
+            val key = "BACKGROUND_ENABLED"
+
+            Log.i(
+                TAG,
+                "set " + key + " in shared prefs: {" + key + "," + value + "}"
+            )
+
+            val editor = sharedPrefs!!.edit()
+            editor.putString(
+                key,
+                value
+            )
+            editor.apply()
+        }
+
+    var fileName: String?
+        /**
+         * @return filepath for new file
+         */
+        get() = sharedPrefs!!.getString("FILE_NAME", "")
+        set(value) {
+            val key = "FILE_NAME"
+
+            Log.i(
+                TAG,
+                "set " + key + " in shared prefs: {" + key + "," + value + "}"
+            )
+
+            val editor = sharedPrefs!!.edit()
+            editor.putString(
+                key,
+                value
+            )
+            editor.apply()
+        }
+
+    var thumbnailUrl: String?
+        /**
+         * @return filepath for new file
+         */
+        get() = sharedPrefs!!.getString("THUMBNAIL_URL", "")
+        set(value) {
+            val key = "THUMBNAIL_URL"
+
+            Log.i(
+                TAG,
+                "set " + key + " in shared prefs: {" + key + "," + value + "}"
+            )
+
+            val editor = sharedPrefs!!.edit()
+            editor.putString(
+                key,
+                value
+            )
+            editor.apply()
+        }
+
+    var videoTitle: String?
+        /**
+         * @return filepath for new file
+         */
+        get() = sharedPrefs!!.getString("VIDEO_TITLE", "")
+        set(value) {
+            val key = "VIDEO_TITLE"
+
+            Log.i(
+                TAG,
+                "set " + key + " in shared prefs: {" + key + "," + value + "}"
+            )
+
+            val editor = sharedPrefs!!.edit()
+            editor.putString(
+                key,
+                value
+            )
+            editor.apply()
+        }
+
+    var fileDir: String?
+        /**
+         * @return filepath for new file
+         */
+        get() = sharedPrefs!!.getString("FOLDER_NAME", "")
+        /**
+         * Set folder for downloaded file
+         * @param value folder name
+         */
+        set(value) {
+            val key = "FOLDER_NAME"
+
+            Log.i(
+                TAG,
+                "set " + key + " in shared prefs: {" + key + "," + value + "}"
+            )
+
+            val editor = sharedPrefs!!.edit()
+            editor.putString(
+                key,
+                value
+            )
+            editor.apply()
+        }
+
+    var fileExt: String?
+        /**
+         * @return filepath for new file
+         */
+        get() = sharedPrefs!!.getString("FILE_EXTENSION", "")
+        /**
+         * Set filename for downloaded file
+         * @param value file name
+         */
+        set(value) {
+            val key = "FILE_EXTENSION"
+
+            Log.i(
+                TAG,
+                "set " + key + " in shared prefs: {" + key + "," + value + "}"
+            )
+
+            val editor = sharedPrefs!!.edit()
+            editor.putString(
+                key,
+                value
+            )
+            editor.apply()
+        }
+
+    var formatId: String?
+        get() = sharedPrefs!!.getString("FORMAT_ID", "")
+        set(value) {
+            val key = "FORMAT_ID"
+
+            Log.i(
+                TAG,
+                "set " + key + " in shared prefs: {" + key + "," + value + "}"
+            )
+
+            val editor = sharedPrefs!!.edit()
+            editor.putString(
+                key,
+                value
+            )
+            editor.apply()
+        }
+
+    // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~  COUNT RUNS  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    fun incrementTotalRuns() {
+        val key = "TOTAL_RUNS"
+        var runs = sharedPrefs!!.getInt(key, 0)
+        ++runs
+        Log.i(TAG, "set pref: {" + key + "," + runs + "}")
+
+        val editor = sharedPrefs!!.edit()
+        editor.putInt(
+            key,
+            runs
+        )
+        editor.apply()
+    }
+
+    val totalRuns: Int
+        get() = sharedPrefs!!.getInt("TOTAL_RUNS", 0)
+
+    fun incrementConversions(): Int {
+        val key = "TOTAL_CONVERSIONS"
+        var convs =
+            sharedPrefs!!.getInt(
+                key,
+                0
+            )
+        ++convs
+        Log.i(TAG, "set pref: {" + key + "," + convs + "}")
+
+        val editor = sharedPrefs!!.edit()
+        editor.putInt(
+            key,
+            convs
+        ).apply()
+        return convs
+    }
+
+    var originalUrl: String?
+        get() = sharedPrefs!!.getString("ORIGINAL_URL", "")
+        set(value) {
+            val key = "ORIGINAL_URL"
+
+            Log.i(
+                TAG,
+                "set " + key + " in shared prefs: {" + key + "," + value + "}"
+            )
+
+            val editor = sharedPrefs!!.edit()
+            editor.putString(
+                key,
+                value
+            )
+            editor.apply()
+        }
+
+    var isGold: Boolean
+        get() = sharedPrefs!!.getBoolean("IS_GOLD", false)
+        set(value) {
+            val key = "IS_GOLD"
+
+            Log.i(
+                TAG,
+                "set " + key + " in shared prefs: {" + key + "," + value + "}"
+            )
+
+            val editor = sharedPrefs!!.edit()
+            editor.putBoolean(
+                key,
+                value
+            )
+            editor.apply()
+        }
+
+    companion object {
+        private val TAG: String = PrefsManager::class.java.getCanonicalName()
+
+        private val KEY_IDS = intArrayOf(
             R.string.prefs_key_download_url,
             R.string.prefs_key_folder,
             R.string.prefs_key_filename,
@@ -30,279 +311,6 @@ public class PrefsManager {
             R.string.prefs_key_token,
             R.string.prefs_key_background_enabled
 
-    };
-
-    /**
-     * Initialize Shared Preferences
-     * @param ctx main activity
-     */
-    public void initSharedPrefs(Context ctx) {
-        // Create & store default values, if necessary
-        try {
-            sharedPrefs = ctx.getSharedPreferences(
-                    "ULOADER_PREFS",
-                    Context.MODE_PRIVATE
-            );
-
-            SharedPreferences.Editor editor = sharedPrefs.edit();
-
-            // total runs
-            if (!sharedPrefs.contains("IS_GOLD")) {
-                editor.putBoolean(
-                        "IS_GOLD",
-                        false
-                );
-            }
-            editor.apply();
-
-            // total runs
-            if (!sharedPrefs.contains("TOTAL_RUNS")) {
-                editor.putInt(
-                        "TOTAL_RUNS",
-                        0
-                );
-            }
-            editor.apply();
-
-            // other default values
-            if (!sharedPrefs.contains("TOTAL_CONVERSIONS")) {
-                editor.putInt(
-                        "TOTAL_CONVERSIONS",
-                        0
-                );
-            }
-
-            // default string values
-            for (int i = 0; i < KEY_IDS.length; ++i) {
-                String key = ctx.getString(KEY_IDS[i]);
-                if (!sharedPrefs.contains(key)) {
-                    editor.putString(
-                            key,
-                            ""
-                    );
-                    editor.apply();
-                }
-            }
-
-        } catch (NullPointerException e) {
-            Log.e(TAG, "Edge Error: NullPointer during initSharedPrefs");
-            e.printStackTrace();
-        }
-
-    }
-
-    // ~~~~~~~~~~~~~~~~~~~~~~~~  GETTERS/SETTERS  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-    public SharedPreferences getSharedPrefs() {
-        return sharedPrefs;
-    }
-
-    public void setBackgroundEnabled(String value) {
-        String key = "BACKGROUND_ENABLED";
-
-        Log.i(TAG, "set " + key + " in shared prefs: {" + key + "," + value + "}");
-
-        SharedPreferences.Editor editor = sharedPrefs.edit();
-        editor.putString(
-                key,
-                value
-        );
-        editor.apply();
-    }
-
-    public String getBackgroundEnabled() {
-        return sharedPrefs.getString("BACKGROUND_ENABLED", "");
-    }
-
-    public void setFileName(String value) {
-        String key = "FILE_NAME";
-
-        Log.i(TAG, "set " + key + " in shared prefs: {" + key + "," + value + "}");
-
-        SharedPreferences.Editor editor = sharedPrefs.edit();
-        editor.putString(
-                key,
-                value
-        );
-        editor.apply();
-    }
-
-    public void setThumbnailUrl(String value) {
-        String key = "THUMBNAIL_URL";
-
-        Log.i(TAG, "set " + key + " in shared prefs: {" + key + "," + value + "}");
-
-        SharedPreferences.Editor editor = sharedPrefs.edit();
-        editor.putString(
-                key,
-                value
-        );
-        editor.apply();
-    }
-
-    public void setVideoTitle(String value) {
-        String key = "VIDEO_TITLE";
-
-        Log.i(TAG, "set " + key + " in shared prefs: {" + key + "," + value + "}");
-
-        SharedPreferences.Editor editor = sharedPrefs.edit();
-        editor.putString(
-                key,
-                value
-        );
-        editor.apply();
-    }
-
-    /**
-     * Set folder for downloaded file
-     * @param value folder name
-     */
-    public void setFileDir(String value) {
-        String key = "FOLDER_NAME";
-
-        Log.i(TAG, "set " + key + " in shared prefs: {" + key + "," + value + "}");
-
-        SharedPreferences.Editor editor = sharedPrefs.edit();
-        editor.putString(
-                key,
-                value
-        );
-        editor.apply();
-    }
-
-    /**
-     * Set filename for downloaded file
-     * @param value file name
-     */
-    public void setFileExt(String value) {
-        String key = "FILE_EXTENSION";
-
-        Log.i(TAG, "set " + key + " in shared prefs: {" + key + "," + value + "}");
-
-        SharedPreferences.Editor editor = sharedPrefs.edit();
-        editor.putString(
-                key,
-                value
-        );
-        editor.apply();
-    }
-
-    /**
-     * @return filepath for new file
-     */
-    public String getFileName() {
-        return sharedPrefs.getString("FILE_NAME", "");
-    }
-
-    /**
-     * @return filepath for new file
-     */
-    public String getThumbnailUrl() {
-        return sharedPrefs.getString("THUMBNAIL_URL", "");
-    }
-
-    /**
-     * @return filepath for new file
-     */
-    public String getVideoTitle() {
-        return sharedPrefs.getString("VIDEO_TITLE", "");
-    }
-
-    /**
-     * @return filepath for new file
-     */
-    public String getFileDir() {
-        return sharedPrefs.getString("FOLDER_NAME", "");
-    }
-
-    /**
-     * @return filepath for new file
-     */
-    public String getFileExt() {
-        return sharedPrefs.getString("FILE_EXTENSION", "");
-    }
-
-    public String getFormatId() {
-        return sharedPrefs.getString("FORMAT_ID", "");
-    }
-
-    public void setFormatId(String value) {
-        String key = "FORMAT_ID";
-
-        Log.i(TAG, "set " + key + " in shared prefs: {" + key + "," + value + "}");
-
-        SharedPreferences.Editor editor = sharedPrefs.edit();
-        editor.putString(
-                key,
-                value
-        );
-        editor.apply();
-    }
-
-    // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~  COUNT RUNS  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-    public void incrementTotalRuns() {
-        String key = "TOTAL_RUNS";
-        int runs = sharedPrefs.getInt(key, 0);
-        ++runs;
-        Log.i(TAG, "set pref: {" + key + "," + runs + "}");
-
-        SharedPreferences.Editor editor = sharedPrefs.edit();
-        editor.putInt(
-                key,
-                runs
-        );
-        editor.apply();
-    }
-
-    public int getTotalRuns() {
-        return sharedPrefs.getInt("TOTAL_RUNS", 0);
-    }
-
-    public int incrementConversions() {
-        String key = "TOTAL_CONVERSIONS";
-        int convs =
-                sharedPrefs.getInt(
-                        key,
-                        0);
-        ++convs;
-        Log.i(TAG, "set pref: {" + key + "," + convs + "}");
-
-        SharedPreferences.Editor editor = sharedPrefs.edit();
-        editor.putInt(
-                key,
-                convs
-        ).apply();
-        return convs;
-    }
-
-    public String getOriginalUrl() {
-        return sharedPrefs.getString("ORIGINAL_URL", "");
-    }
-    public void setOriginalUrl(String value) {
-        String key = "ORIGINAL_URL";
-
-        Log.i(TAG, "set " + key + " in shared prefs: {" + key + "," + value + "}");
-
-        SharedPreferences.Editor editor = sharedPrefs.edit();
-        editor.putString(
-                key,
-                value
-        );
-        editor.apply();
-    }
-
-    public boolean getIsGold() {
-        return sharedPrefs.getBoolean("IS_GOLD", false);
-    }
-    public void setIsGold(boolean value) {
-        String key = "IS_GOLD";
-
-        Log.i(TAG, "set " + key + " in shared prefs: {" + key + "," + value + "}");
-
-        SharedPreferences.Editor editor = sharedPrefs.edit();
-        editor.putBoolean(
-                key,
-                value
-        );
-        editor.apply();
+        )
     }
 }

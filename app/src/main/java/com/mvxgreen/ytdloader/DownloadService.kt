@@ -1,237 +1,234 @@
-package com.mvxgreen.ytdloader;
+package com.mvxgreen.ytdloader
 
-import static com.mvxgreen.ytdloader.MainActivity.ABS_PATH_DOCS;
-import static com.mvxgreen.ytdloader.MainActivity.mResolution;
+import android.app.ForegroundServiceStartNotAllowedException
+import android.app.NotificationChannel
+import android.app.NotificationManager
+import android.app.PendingIntent
+import android.app.Service
+import android.content.Context
+import android.content.Intent
+import android.content.pm.ServiceInfo
+import android.os.AsyncTask
+import android.os.Binder
+import android.os.Build
+import android.os.Bundle
+import android.os.IBinder
+import android.util.Log
+import androidx.core.app.NotificationCompat
+import androidx.core.app.ServiceCompat
+import com.chaquo.python.Python
+import com.chaquo.python.android.AndroidPlatform
+import com.google.firebase.analytics.FirebaseAnalytics
+import com.mvxgreen.ytdloader.manager.PrefsManager
+import java.io.File
+import java.io.IOException
+import java.nio.file.Files
+import java.nio.file.attribute.FileTime
 
-import android.app.ForegroundServiceStartNotAllowedException;
-import android.app.Notification;
-import android.app.NotificationChannel;
-import android.app.NotificationManager;
-import android.app.PendingIntent;
-import android.app.Service;
-import android.content.Context;
-import android.content.Intent;
-import android.content.pm.ServiceInfo;
-import android.os.AsyncTask;
-import android.os.Binder;
-import android.os.Build;
-import android.os.Bundle;
-import android.os.IBinder;
-import android.util.Log;
-
-import androidx.annotation.Nullable;
-import androidx.core.app.NotificationCompat;
-import androidx.core.app.ServiceCompat;
-
-import com.chaquo.python.PyObject;
-import com.chaquo.python.Python;
-import com.chaquo.python.android.AndroidPlatform;
-import com.google.firebase.analytics.FirebaseAnalytics;
-import com.mvxgreen.ytdloader.manager.PrefsManager;
-
-import java.io.File;
-import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.attribute.FileTime;
-
-public class DownloadService extends Service {
-    private static final String TAG = DownloadService.class.getCanonicalName();
-    private PrefsManager mPrefsManager;
-    private final IBinder binder = new LocalBinder();
-    int pendingIntentId = 0;
+class DownloadService : Service() {
+    private var mPrefsManager: PrefsManager? = null
+    private val binder: IBinder = LocalBinder()
+    var pendingIntentId: Int = 0
 
     /**
      * Class used for the client Binder.  Because we know this service always
      * runs in the same process as its clients, we don't need to deal with IPC.
      */
-    public class LocalBinder extends Binder {
-        public DownloadService getService() {
-            // Return this instance of LocalService so clients can call public methods
-            return DownloadService.this;
-        }
+    inner class LocalBinder : Binder() {
+        val service: DownloadService
+            get() =// Return this instance of LocalService so clients can call public methods
+                this@DownloadService
     }
 
-    @Nullable
-    @Override
-    public IBinder onBind(Intent intent) {
-        Log.i(TAG, "OnBind");
-        return binder;
+    override fun onBind(intent: Intent?): IBinder? {
+        Log.i(TAG, "OnBind")
+        return binder
     }
 
-    @Override
-    public void onDestroy() {
-        Log.i(TAG, "onDestroy");
-        super.onDestroy();
+    override fun onDestroy() {
+        Log.i(TAG, "onDestroy")
+        super.onDestroy()
     }
 
-    @Override
-    public int onStartCommand(Intent intent, int flags, int startId) {
-        Log.i(TAG, "onStartCommand");
+    override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
+        Log.i(TAG, "onStartCommand")
 
-        mPrefsManager = new PrefsManager(getApplicationContext());
-        registerNotification();
+        mPrefsManager = PrefsManager(getApplicationContext())
+        registerNotification()
 
         // get original url from prefs
-        String ogUrl = mPrefsManager.getOriginalUrl();
+        val ogUrl = mPrefsManager!!.originalUrl
 
         // start download
-        downloadVideo(ogUrl);
+        downloadVideo(ogUrl)
 
-        return START_STICKY;
+        return START_STICKY
     }
 
-    @SuppressWarnings("deprecation")
-    @Override
-    public void onStart(Intent intent, int startId) {
-        super.onStart(intent, startId);
-        Log.i(TAG, "onStart");
+    @Suppress("deprecation")
+    override fun onStart(intent: Intent?, startId: Int) {
+        super.onStart(intent, startId)
+        Log.i(TAG, "onStart")
     }
 
-    private void downloadVideo(String url) {
+    private fun downloadVideo(url: String?) {
         try {
-            Bundle bundle = new Bundle();
-            bundle.putString("app_name", "savefrom");
-            bundle.putString("url", url);
+            val bundle = Bundle()
+            bundle.putString("app_name", "savefrom")
+            bundle.putString("url", url)
             FirebaseAnalytics.getInstance(this)
-                    .logEvent("download_start", bundle);
-        } catch (Exception ignored) {}
+                .logEvent("download_start", bundle)
+        } catch (ignored: Exception) {
+        }
 
-        new DownloadVideoTask(MainActivity.activityCurrent).execute(url);
+        DownloadVideoTask(MainActivity.activityCurrent).execute(url)
     }
 
     // async download video
-    public static class DownloadVideoTask extends AsyncTask<String, Void, String> {
-        private static final String TAG = DownloadVideoTask.class.getCanonicalName();
-        String vidExt = ".mp4", audExt = ".m4a";
-        AndroidPlatform ap;
-        PrefsManager prefsManager;
+    class DownloadVideoTask(ctx: Context) : AsyncTask<String?, Void?, String?>() {
+        var vidExt: String = ".mp4"
+        var audExt: String = ".m4a"
+        var ap: AndroidPlatform
+        var prefsManager: PrefsManager
 
-        public DownloadVideoTask(Context ctx) {
-            prefsManager = new PrefsManager(ctx);
-            ap = new AndroidPlatform(ctx);
+        init {
+            prefsManager = PrefsManager(ctx)
+            ap = AndroidPlatform(ctx)
         }
 
         //this method will download the audio file by using python script
-        @Override
-        protected String doInBackground(String... urls) {
-            Log.i(TAG, "doInBackground()");
+        override fun doInBackground(vararg urls: String?): String {
+            Log.i(TAG, "doInBackground()")
 
             // init python
             if (!Python.isStarted()) {
-                Python.start(ap);
+                Python.start(ap)
             }
-            Python py = Python.getInstance();
-            PyObject pyObject = py.getModule("vidloader");
+            val py = Python.getInstance()
+            val pyObject = py.getModule("vidloader")
 
             // get video url and resolution
-            String videoUrl = urls[0];
-            String resolution = mResolution.replaceAll("\\D", "");
+            val videoUrl: String? = urls[0]
+            val resolution = MainActivity.mResolution.replace("\\D".toRegex(), "")
 
             if (!Python.isStarted()) {
-                Python.start(ap);
+                Python.start(ap)
             }
 
-            String res = "";
+            var res = ""
             try {
-                Log.i(TAG, "trying dl_video_without_audio");
+                Log.i(TAG, "trying dl_video_without_audio")
 
                 if (!Python.isStarted()) {
-                    Python.start(ap);
+                    Python.start(ap)
                 }
 
-                PyObject result = pyObject.callAttr("dl_video_without_audio",
-                        MainActivity.activityCurrent,
-                        videoUrl,
-                        ABS_PATH_DOCS,
-                        prefsManager.getFileName(),
-                        resolution);
-                res = result.toString();
-                Log.i(TAG, "format_ids: "+ res);
-                prefsManager.setFormatId(res);
-            } catch (Exception e) {
-                e.printStackTrace();
-                String msg = "error downloading video! e="+e;
-                Log.e(TAG, msg);
+                val result = pyObject.callAttr(
+                    "dl_video_without_audio",
+                    MainActivity.activityCurrent,
+                    videoUrl,
+                    MainActivity.ABS_PATH_DOCS,
+                    prefsManager.fileName,
+                    resolution
+                )
+                res = result.toString()
+                Log.i(TAG, "format_ids: " + res)
+                prefsManager.formatId = res
+            } catch (e: Exception) {
+                e.printStackTrace()
+                val msg = "error downloading video! e=" + e
+                Log.e(TAG, msg)
 
                 // send finish broadcast
-                Intent intent = new Intent("69");
-                intent.putExtra("FILEPATH", "");
-                MainActivity.activityCurrent.sendBroadcast(intent);
+                val intent = Intent("69")
+                intent.putExtra("FILEPATH", "")
+                MainActivity.activityCurrent.sendBroadcast(intent)
             }
 
-            return res;
+            return res
         }
 
-        @Override
-        protected void onPostExecute(String s) {
-            Log.i(TAG, "OnPostExecute");
+        override fun onPostExecute(s: String?) {
+            Log.i(TAG, "OnPostExecute")
 
             // build filepaths
-            String absFilename = prefsManager.getFileName() + vidExt;
-            String absFilepath = ABS_PATH_DOCS + prefsManager.getFileName();
-            absFilepath += vidExt;
+            val absFilename = prefsManager.fileName + vidExt
+            var absFilepath: String? = MainActivity.ABS_PATH_DOCS + prefsManager.fileName
+            absFilepath += vidExt
 
             // scan video file (no audio)
-            File dl = new File(absFilepath);
+            val dl = File(absFilepath)
             if (dl.exists()) {
-                FileTime now = null;
-                if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
-                    now = FileTime.fromMillis(System.currentTimeMillis());
+                var now: FileTime? = null
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                    now = FileTime.fromMillis(System.currentTimeMillis())
                     try {
-                        Files.setLastModifiedTime(dl.toPath(), now);
-                    } catch (IOException e) {
-                        throw new RuntimeException(e);
+                        Files.setLastModifiedTime(dl.toPath(), now)
+                    } catch (e: IOException) {
+                        throw RuntimeException(e)
                     }
                 }
             }
 
             // send finish broadcast
-            Intent intent = new Intent("69");
-            intent.putExtra("FILEPATH", absFilepath);
-            MainActivity.activityCurrent.sendBroadcast(intent);
+            val intent = Intent("69")
+            intent.putExtra("FILEPATH", absFilepath)
+            MainActivity.activityCurrent.sendBroadcast(intent)
+        }
+
+        companion object {
+            private val TAG: String = DownloadVideoTask::class.java.getCanonicalName()
         }
     }
 
-    private void registerNotification() {
-        if (android.os.Build.VERSION.SDK_INT < android.os.Build.VERSION_CODES.O) {
-            return;
+    private fun registerNotification() {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) {
+            return
         }
         try {
-            Intent intent = new Intent(DownloadService.this, MainActivity.class);
-            intent.setFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP | Intent.FLAG_ACTIVITY_CLEAR_TOP);
-            int pendingIntentFlags = PendingIntent.FLAG_UPDATE_CURRENT;
+            val intent = Intent(this@DownloadService, MainActivity::class.java)
+            intent.setFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP or Intent.FLAG_ACTIVITY_CLEAR_TOP)
+            var pendingIntentFlags = PendingIntent.FLAG_UPDATE_CURRENT
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-                pendingIntentFlags = (PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
+                pendingIntentFlags =
+                    (PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
             }
-            PendingIntent pi = PendingIntent.getActivity(MainActivity.activityCurrent, pendingIntentId++, intent, pendingIntentFlags);
+            val pi = PendingIntent.getActivity(
+                MainActivity.activityCurrent,
+                pendingIntentId++,
+                intent,
+                pendingIntentFlags
+            )
 
-            NotificationChannel channel = new NotificationChannel("SaveFrom", "SaveFrom", NotificationManager.IMPORTANCE_LOW);
-            NotificationManager manager = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
-            manager.createNotificationChannel(channel);
+            val channel =
+                NotificationChannel("SaveFrom", "SaveFrom", NotificationManager.IMPORTANCE_LOW)
+            val manager = getSystemService(NOTIFICATION_SERVICE) as NotificationManager
+            manager.createNotificationChannel(channel)
 
-            Notification notification =
-                    new NotificationCompat.Builder(DownloadService.this, "SaveFrom")
-                            .setContentTitle("Downloading…")
-                            .setSmallIcon(R.drawable.downloader_raw)
-                            .setProgress(100,0, true)
-                            .setOngoing(true)
-                            .setContentIntent(pi)
-                            .build();
-            manager.notify(43, notification);
+            val notification =
+                NotificationCompat.Builder(this@DownloadService, "SaveFrom")
+                    .setContentTitle("Downloading…")
+                    .setSmallIcon(R.drawable.downloader_raw)
+                    .setProgress(100, 0, true)
+                    .setOngoing(true)
+                    .setContentIntent(pi)
+                    .build()
+            manager.notify(43, notification)
 
-            int type = 0;
+            var type = 0
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-                type = ServiceInfo.FOREGROUND_SERVICE_TYPE_DATA_SYNC;
+                type = ServiceInfo.FOREGROUND_SERVICE_TYPE_DATA_SYNC
             }
-            ServiceCompat.startForeground(
-                    /* service = */ this,
-                    /* id = */ 43, // Cannot be 0
-                    /* notification = */ notification,
-                    /* foregroundServiceType = */ type
-            );
-        } catch (Exception e) {
+            ServiceCompat.startForeground( /* service = */
+                this,  /* id = */
+                43,  // Cannot be 0
+                /* notification = */
+                notification,  /* foregroundServiceType = */
+                type
+            )
+        } catch (e: Exception) {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S &&
-                    e instanceof ForegroundServiceStartNotAllowedException
+                e is ForegroundServiceStartNotAllowedException
             ) {
                 // App not in a valid state to start foreground service
                 // (e.g started from bg)
@@ -240,23 +237,32 @@ public class DownloadService extends Service {
         }
     }
 
-    public void setProgress(int max_progress, int progress) {
-        Intent intent = new Intent(DownloadService.this, MainActivity.class);
-        intent.setFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP | Intent.FLAG_ACTIVITY_CLEAR_TOP);
-        int pendingIntentFlags = PendingIntent.FLAG_UPDATE_CURRENT;
+    fun setProgress(max_progress: Int, progress: Int) {
+        val intent = Intent(this@DownloadService, MainActivity::class.java)
+        intent.setFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP or Intent.FLAG_ACTIVITY_CLEAR_TOP)
+        var pendingIntentFlags = PendingIntent.FLAG_UPDATE_CURRENT
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-            pendingIntentFlags = (PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
+            pendingIntentFlags = (PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
         }
-        PendingIntent pi = PendingIntent.getActivity(MainActivity.activityCurrent, pendingIntentId++, intent, pendingIntentFlags);
-        Notification notification = new NotificationCompat.Builder(DownloadService.this, "SaveFrom")
-                .setContentTitle("Downloading Video…")
-                .setSmallIcon(R.drawable.downloader_raw)
-                .setProgress(max_progress, progress, false)
-                .setOngoing(true)
-                .setContentIntent(pi)
-                .build();
+        val pi = PendingIntent.getActivity(
+            MainActivity.activityCurrent,
+            pendingIntentId++,
+            intent,
+            pendingIntentFlags
+        )
+        val notification = NotificationCompat.Builder(this@DownloadService, "SaveFrom")
+            .setContentTitle("Downloading Video…")
+            .setSmallIcon(R.drawable.downloader_raw)
+            .setProgress(max_progress, progress, false)
+            .setOngoing(true)
+            .setContentIntent(pi)
+            .build()
 
-        NotificationManager manager = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
-        manager.notify(43, notification);
+        val manager = getSystemService(NOTIFICATION_SERVICE) as NotificationManager
+        manager.notify(43, notification)
+    }
+
+    companion object {
+        private val TAG: String = DownloadService::class.java.getCanonicalName()
     }
 }

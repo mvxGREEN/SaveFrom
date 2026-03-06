@@ -1,45 +1,45 @@
-package com.mvxgreen.ytdloader.frag;
+package com.mvxgreen.ytdloader.frag
 
-import android.os.Bundle;
-import android.view.LayoutInflater;
-import android.view.View;
-import android.view.ViewGroup;
-import android.widget.TextView;
-
-import androidx.annotation.NonNull;
-import androidx.fragment.app.Fragment;
-
-import com.mvxgreen.ytdloader.R;
-
+import android.os.Bundle
+import android.view.LayoutInflater
+import android.view.View
+import android.view.ViewGroup
+import androidx.fragment.app.Fragment
+import com.mvxgreen.ytdloader.R
 
 /**
  * Created by MVX on 7/6/2017.
- *
+ * 
  * GOAL: Initialize dialog fragment with proper layout
- *
+ * 
  * GIVEN:
- *  1) Clicked menu item id
+ * 1) Clicked menu item id
  */
-
-public class BigFragment extends Fragment {
-    private static final String TAG = BigFragment.class.getCanonicalName();
-
-    @Override
-    public View onCreateView(@NonNull LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
-        View rootView;
-        String title = getArguments() != null ?
-                getArguments().getString(getString(R.string.key_extra_menu_item_title), "") : "";
+class BigFragment : Fragment() {
+    override fun onCreateView(
+        inflater: LayoutInflater,
+        container: ViewGroup?,
+        savedInstanceState: Bundle?
+    ): View? {
+        val rootView: View?
+        val title = if (getArguments() != null) requireArguments().getString(
+            getString(R.string.key_extra_menu_item_title),
+            ""
+        ) else ""
 
         // Check menu item title; inflate proper fragment
-        if (title.equals("Enable Notifications")) {
-            rootView = inflater.inflate(R.layout.frag_justify_notifications, container, false);
-        } else if (title.equals("InFlyer")) {
-            rootView = inflater.inflate(R.layout.frag_inflyer, container, false);
+        if (title == "Enable Notifications") {
+            rootView = inflater.inflate(R.layout.frag_justify_notifications, container, false)
+        } else if (title == "InFlyer") {
+            rootView = inflater.inflate(R.layout.frag_inflyer, container, false)
         } else {
-            rootView = inflater.inflate(R.layout.frag_upgrade, container, false);
+            rootView = inflater.inflate(R.layout.frag_upgrade, container, false)
         }
 
-        return rootView;
+        return rootView
     }
 
+    companion object {
+        private val TAG: String = BigFragment::class.java.getCanonicalName()
+    }
 }

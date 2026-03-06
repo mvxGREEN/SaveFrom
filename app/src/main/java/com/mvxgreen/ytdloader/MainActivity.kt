@@ -1,466 +1,481 @@
-package com.mvxgreen.ytdloader;
+package com.mvxgreen.ytdloader
 
-import static android.view.View.GONE;
-import static com.mvxgreen.ytdloader.manager.MediaManager.MIME_MP4;
+import android.Manifest
+import android.annotation.SuppressLint
+import android.app.Dialog
+import android.content.ActivityNotFoundException
+import android.content.BroadcastReceiver
+import android.content.ClipboardManager
+import android.content.ComponentName
+import android.content.Context
+import android.content.Intent
+import android.content.IntentFilter
+import android.content.ServiceConnection
+import android.content.pm.PackageManager
+import android.graphics.drawable.Animatable
+import android.net.Uri
+import android.os.Build
+import android.os.Bundle
+import android.os.Environment
+import android.os.Handler
+import android.os.IBinder
+import android.os.StrictMode
+import android.os.StrictMode.ThreadPolicy
+import android.provider.Settings
+import android.text.Editable
+import android.text.TextWatcher
+import android.util.Log
+import android.view.ContextThemeWrapper
+import android.view.Gravity
+import android.view.Menu
+import android.view.MenuItem
+import android.view.View
+import android.view.animation.AccelerateInterpolator
+import android.view.animation.Animation
+import android.view.animation.AnimationUtils
+import android.view.inputmethod.InputMethodManager
+import android.widget.AdapterView
+import android.widget.ArrayAdapter
+import android.widget.Button
+import android.widget.LinearLayout
+import android.widget.Spinner
+import android.widget.TextView
+import android.widget.Toast
+import androidx.activity.enableEdgeToEdge
+import androidx.annotation.RequiresApi
+import androidx.appcompat.app.AppCompatActivity
+import androidx.appcompat.widget.Toolbar
+import androidx.constraintlayout.widget.ConstraintLayout
+import androidx.core.app.ActivityCompat
+import androidx.core.content.ContextCompat
+import com.android.billingclient.api.AcknowledgePurchaseParams
+import com.android.billingclient.api.AcknowledgePurchaseResponseListener
+import com.android.billingclient.api.BillingClient
+import com.android.billingclient.api.BillingClientStateListener
+import com.android.billingclient.api.BillingFlowParams
+import com.android.billingclient.api.BillingFlowParams.ProductDetailsParams
+import com.android.billingclient.api.BillingResult
+import com.android.billingclient.api.PendingPurchasesParams
+import com.android.billingclient.api.ProductDetailsResponseListener
+import com.android.billingclient.api.Purchase
+import com.android.billingclient.api.PurchasesResponseListener
+import com.android.billingclient.api.PurchasesUpdatedListener
+import com.android.billingclient.api.QueryProductDetailsParams
+import com.android.billingclient.api.QueryProductDetailsResult
+import com.android.billingclient.api.QueryPurchasesParams
+import com.chaquo.python.Python
+import com.chaquo.python.android.AndroidPlatform
+import com.google.android.gms.ads.MobileAds
+import com.google.android.gms.ads.initialization.InitializationStatus
+import com.google.android.gms.ads.initialization.OnInitializationCompleteListener
+import com.google.android.ump.ConsentForm.OnConsentFormDismissedListener
+import com.google.android.ump.ConsentInformation
+import com.google.android.ump.ConsentInformation.OnConsentInfoUpdateFailureListener
+import com.google.android.ump.ConsentInformation.OnConsentInfoUpdateSuccessListener
+import com.google.android.ump.ConsentRequestParameters
+import com.google.android.ump.FormError
+import com.google.android.ump.UserMessagingPlatform
+import com.google.common.collect.ImmutableList
+import com.google.firebase.analytics.FirebaseAnalytics
+import com.mvxgreen.ytdloader.DownloadService.LocalBinder
+import com.mvxgreen.ytdloader.databinding.ActivityMainBinding
+import com.mvxgreen.ytdloader.frag.BigFragment
+import com.mvxgreen.ytdloader.frag.FileFragment
+import com.mvxgreen.ytdloader.manager.AdsManager
+import com.mvxgreen.ytdloader.manager.MediaManager
+import com.mvxgreen.ytdloader.manager.PrefsManager
+import com.squareup.picasso.Callback
+import com.squareup.picasso.Picasso
+import java.net.InetAddress
+import java.time.LocalDate
+import kotlin.math.min
 
-import android.Manifest;
-import android.annotation.SuppressLint;
-import android.app.Dialog;
-import android.content.BroadcastReceiver;
-import android.content.ClipData;
-import android.content.ClipboardManager;
-import android.content.ComponentName;
-import android.content.Context;
-import android.content.Intent;
-import android.content.IntentFilter;
-import android.content.ServiceConnection;
-import android.content.SharedPreferences;
-import android.content.pm.PackageManager;
-import android.graphics.drawable.Animatable;
-import android.net.Uri;
-import android.os.Build;
-import android.os.Bundle;
-import android.os.Environment;
-import android.os.Handler;
-import android.os.IBinder;
-import android.os.StrictMode;
-import android.provider.Settings;
-import android.text.Editable;
-import android.text.TextWatcher;
-import android.util.Log;
-import android.view.ContextThemeWrapper;
-import android.view.Gravity;
-import android.view.Menu;
-import android.view.MenuInflater;
-import android.view.MenuItem;
-import android.view.View;
-import android.view.animation.AccelerateInterpolator;
-import android.view.animation.Animation;
-import android.view.animation.AnimationUtils;
-import android.view.inputmethod.InputMethodManager;
-import android.widget.AdapterView;
-import android.widget.ArrayAdapter;
-import android.widget.Button;
-import android.widget.LinearLayout;
-import android.widget.Spinner;
-import android.widget.TextView;
-import android.widget.Toast;
+class MainActivity : AppCompatActivity(), PurchasesUpdatedListener,
+    AdapterView.OnItemSelectedListener {
+    var mDownloadService: DownloadService? = null
+    var mBinding: ActivityMainBinding? = null
+    var fadeIn: Animation? = null
+    var fadeOut: Animation? = null
+    var fileFragment: FileFragment? = null
 
-import androidx.activity.EdgeToEdge;
-import androidx.annotation.NonNull;
-import androidx.annotation.RequiresApi;
-import androidx.appcompat.app.AppCompatActivity;
-import androidx.appcompat.widget.Toolbar;
-import androidx.constraintlayout.widget.ConstraintLayout;
-import androidx.core.app.ActivityCompat;
-import androidx.core.content.ContextCompat;
-import androidx.fragment.app.FragmentManager;
-import androidx.fragment.app.FragmentTransaction;
+    var prefsManager: PrefsManager? = null
+    var mFinishReceiver: FinishReceiver? = null
 
-import com.android.billingclient.api.AcknowledgePurchaseParams;
-import com.android.billingclient.api.AcknowledgePurchaseResponseListener;
-import com.android.billingclient.api.BillingClient;
-import com.android.billingclient.api.BillingClientStateListener;
-import com.android.billingclient.api.BillingFlowParams;
-import com.android.billingclient.api.BillingResult;
-import com.android.billingclient.api.PendingPurchasesParams;
-import com.android.billingclient.api.ProductDetails;
-import com.android.billingclient.api.ProductDetailsResponseListener;
-import com.android.billingclient.api.Purchase;
-import com.android.billingclient.api.PurchasesResponseListener;
-import com.android.billingclient.api.PurchasesUpdatedListener;
-import com.android.billingclient.api.QueryProductDetailsParams;
-import com.android.billingclient.api.QueryProductDetailsResult;
-import com.android.billingclient.api.QueryPurchasesParams;
-import com.android.billingclient.api.UnfetchedProduct;
-import com.chaquo.python.PyObject;
-import com.chaquo.python.Python;
-import com.chaquo.python.android.AndroidPlatform;
-import com.google.android.gms.ads.MobileAds;
-import com.google.android.ump.ConsentForm;
-import com.google.android.ump.ConsentInformation;
-import com.google.android.ump.ConsentRequestParameters;
-import com.google.android.ump.UserMessagingPlatform;
-import com.google.common.collect.ImmutableList;
-import com.google.firebase.analytics.FirebaseAnalytics;
-import com.mvxgreen.ytdloader.databinding.ActivityMainBinding;
-import com.mvxgreen.ytdloader.frag.BigFragment;
-import com.mvxgreen.ytdloader.frag.FileFragment;
-import com.mvxgreen.ytdloader.manager.AdsManager;
-import com.mvxgreen.ytdloader.manager.MediaManager;
-import com.mvxgreen.ytdloader.manager.PrefsManager;
-import com.squareup.picasso.Callback;
-import com.squareup.picasso.Picasso;
+    var androidPlatform: AndroidPlatform? = null
 
-import java.net.InetAddress;
-import java.time.LocalDate;
-import java.time.format.DateTimeFormatter;
-import java.util.List;
-
-public class MainActivity extends AppCompatActivity implements PurchasesUpdatedListener, AdapterView.OnItemSelectedListener {
-    private static final String TAG = MainActivity.class.getCanonicalName();
-    public static final String ABS_PATH_DOCS = Environment.getExternalStoragePublicDirectory(
-                            Environment.DIRECTORY_DOCUMENTS)
-                    .getAbsolutePath() + "/";
-
-    public static MainActivity activityCurrent;
-    DownloadService mDownloadService;
-    public ActivityMainBinding mBinding;
-    Animation fadeIn, fadeOut;
-    FileFragment fileFragment;
-
-    PrefsManager prefsManager;
-    FinishReceiver mFinishReceiver;
-
-    AndroidPlatform androidPlatform;
-
-    boolean isBackgroundEnabled = false;
-
-    static String mResolution = "2160p";
+    var isBackgroundEnabled: Boolean = false
 
     // admob
-    ConsentInformation consentInformation;
+    var consentInformation: ConsentInformation? = null
 
-    // billing
-    public static boolean MIsGold = false;
-    private BillingClient billingClient;
-    public static BillingFlowParams MBillingFlowParams;
-
-    public MainActivity() {
-        activityCurrent = this;
-    }
+    private var billingClient: BillingClient? = null
 
     @SuppressLint("UnspecifiedRegisterReceiverFlag")
-    @Override
-    protected void onCreate(Bundle savedInstanceState) {
-        super.onCreate(savedInstanceState);
-        EdgeToEdge.enable(this);
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        this.enableEdgeToEdge()
         if (mBinding == null) {
-            mBinding = ActivityMainBinding.inflate(getLayoutInflater());
+            mBinding = ActivityMainBinding.inflate(getLayoutInflater())
         }
-        setContentView(mBinding.getRoot());
+        setContentView(mBinding!!.getRoot())
 
         // Fixes "strict-mode" error when fetching webpage... idek..
-        StrictMode.ThreadPolicy policy = new StrictMode.ThreadPolicy.Builder().permitAll().build();
-        StrictMode.setThreadPolicy(policy);
+        val policy = ThreadPolicy.Builder().permitAll().build()
+        StrictMode.setThreadPolicy(policy)
 
-        prefsManager = new PrefsManager(MainActivity.this);
-        isBackgroundEnabled = !(prefsManager.getBackgroundEnabled()).isEmpty();
-        Log.i(TAG, "isBackgroundEnabled="+isBackgroundEnabled);
-        initMainViews();
+        prefsManager = PrefsManager(this@MainActivity)
+        isBackgroundEnabled = (prefsManager!!.backgroundEnabled)?.isNotEmpty() ?: false
+        Log.i(TAG, "isBackgroundEnabled=" + isBackgroundEnabled)
+        initMainViews()
 
         if (!Python.isStarted()) {
-            androidPlatform = new AndroidPlatform(this);
-            Python.start(androidPlatform);
+            androidPlatform = AndroidPlatform(this)
+            Python.start(androidPlatform!!)
         }
 
         // check permissions
         //hasStoragePermissions();
 
         // register receivers
-        mFinishReceiver = new FinishReceiver();
+        mFinishReceiver = FinishReceiver()
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            registerReceiver(mFinishReceiver, new IntentFilter("69"), RECEIVER_EXPORTED);
+            registerReceiver(mFinishReceiver, IntentFilter("69"), RECEIVER_EXPORTED)
         } else {
-            registerReceiver(mFinishReceiver, new IntentFilter("69"));
+            registerReceiver(mFinishReceiver, IntentFilter("69"))
         }
 
         // init billing
-        loadBillingClient();
+        loadBillingClient()
 
         // init admob
-        loadAdmob();
+        loadAdmob()
     }
 
-    @Override
-    protected void onResume() {
+    override fun onResume() {
         if (billingClient != null) {
             // check purchases
-            checkSubscriptionStatus();
+            checkSubscriptionStatus()
         }
 
-        super.onResume();
+        super.onResume()
     }
 
-    @Override
-    protected void onDestroy() {
+    override fun onDestroy() {
         try {
-            unregisterReceiver(mFinishReceiver);
-        } catch (Exception ignored) {}
-        super.onDestroy();
+            unregisterReceiver(mFinishReceiver)
+        } catch (ignored: Exception) {
+        }
+        super.onDestroy()
     }
 
-    public void onYearlyClick(View v) {
-        Log.i(TAG, "onYearlyClick");
+    fun onYearlyClick(v: View?) {
+        Log.i(TAG, "onYearlyClick")
         //launchBillingFlow("yearly");
-        launchBillingFlow();
+        launchBillingFlow()
     }
 
-    public void onUpgradeClick(View v) {
-        onUpgradeClick();
+    fun onUpgradeClick(v: View?) {
+        onUpgradeClick()
     }
 
-    public void onUpgradeClick() {
-        Log.i(TAG, "onUpgradeClick");
+    fun onUpgradeClick() {
+        Log.i(TAG, "onUpgradeClick")
         //launchBillingFlow("monthly");
-        launchBillingFlow();
+        launchBillingFlow()
     }
 
-    public void onGetInflyerClick(View v) {
+    fun onGetInflyerClick(v: View?) {
         // open inflyer in google play
-        String playStoreUrl = "https://play.google.com/store/apps/details?id=green.mobileapps.downloader4inflact";
-        Intent intent = new Intent(Intent.ACTION_VIEW);
-        intent.setData(Uri.parse(playStoreUrl));
-        startActivity(intent);
+        val playStoreUrl =
+            "https://play.google.com/store/apps/details?id=green.mobileapps.downloader4inflact"
+        val intent = Intent(Intent.ACTION_VIEW)
+        intent.setData(Uri.parse(playStoreUrl))
+        startActivity(intent)
     }
 
-    public void launchBillingFlow() {
-        Log.i(TAG, "launchBillingFlow");
+    fun launchBillingFlow() {
+        Log.i(TAG, "launchBillingFlow")
         if (MBillingFlowParams != null) {
-            BillingResult billingResult = billingClient.launchBillingFlow(MainActivity.this, MBillingFlowParams);
+            val billingResult =
+                billingClient!!.launchBillingFlow(this@MainActivity, MBillingFlowParams!!)
         } else {
-            Log.e(TAG, "MBillingFlowParams is null");
+            Log.e(TAG, "MBillingFlowParams is null")
         }
-
     }
 
-    class MBillingClientListener implements BillingClientStateListener {
-
-        MBillingClientListener() {}
-
-        @Override
-        public void onBillingServiceDisconnected() {
-            MainActivity.this.establishBillingConnection();
+    internal inner class MBillingClientListener : BillingClientStateListener {
+        override fun onBillingServiceDisconnected() {
+            this@MainActivity.establishBillingConnection()
         }
 
-        @Override
-        public void onBillingSetupFinished(@NonNull BillingResult billingResult) {
-            Log.i(TAG, "onBillingSetupFinished");
-            if (billingResult.getResponseCode() ==  BillingClient.BillingResponseCode.OK) {
-                Log.i(TAG, "Billing Response Code == OK");
+        override fun onBillingSetupFinished(billingResult: BillingResult) {
+            Log.i(TAG, "onBillingSetupFinished")
+            if (billingResult.getResponseCode() == BillingClient.BillingResponseCode.OK) {
+                Log.i(TAG, "Billing Response Code == OK")
                 // query available products
-                QueryProductDetailsParams queryProductDetailsParams =
-                        QueryProductDetailsParams.newBuilder()
-                                .setProductList(
-                                        ImmutableList.of(
-                                                QueryProductDetailsParams.Product.newBuilder()
-                                                        .setProductId("savefrom_gold")
-                                                        .setProductType(BillingClient.ProductType.SUBS)
-                                                        .build()))
-                                .build();
+                val queryProductDetailsParams =
+                    QueryProductDetailsParams.newBuilder()
+                        .setProductList(
+                            ImmutableList.of<QueryProductDetailsParams.Product?>(
+                                QueryProductDetailsParams.Product.newBuilder()
+                                    .setProductId("savefrom_gold")
+                                    .setProductType(BillingClient.ProductType.SUBS)
+                                    .build()
+                            )
+                        )
+                        .build()
 
-                billingClient.queryProductDetailsAsync(
-                        queryProductDetailsParams,
-                        new ProductDetailsResponseListener() {
-                            public void onProductDetailsResponse(@NonNull BillingResult billingResult,
-                                                                 @NonNull QueryProductDetailsResult queryProductDetailsResult) {
-                                Log.i(TAG, "onProductDetailsResponse");
-                                if (billingResult.getResponseCode() == BillingClient.BillingResponseCode.OK) {
-                                    Log.i(TAG, "Billing Response Code == OK");
-                                    if (queryProductDetailsResult.getProductDetailsList().size() == 0) {
-                                        Log.e(TAG, "no products found");
-                                    }
-                                    for (ProductDetails productDetails : queryProductDetailsResult.getProductDetailsList()) {
-                                        Log.i(TAG, "found product details");
-
-                                        // get product details
-                                        ImmutableList<BillingFlowParams.ProductDetailsParams> productDetailsParamsList =
-                                                ImmutableList.of(
-                                                        BillingFlowParams.ProductDetailsParams.newBuilder()
-                                                                // retrieve a value for "productDetails" by calling queryProductDetailsAsync()
-                                                                .setProductDetails(productDetails)
-                                                                // Get the offer token:
-                                                                // a. For one-time products, call ProductDetails.getOneTimePurchaseOfferDetailsList()
-                                                                // for a list of offers that are available to the user.
-                                                                // b. For subscriptions, call ProductDetails.subscriptionOfferDetails()
-                                                                // for a list of offers that are available to the user.
-                                                                .setOfferToken(productDetails.getSubscriptionOfferDetails().get(0).getOfferToken())
-                                                                .build()
-                                                );
-
-                                        // set billing flow params
-                                        MBillingFlowParams = BillingFlowParams.newBuilder()
-                                                .setProductDetailsParamsList(productDetailsParamsList)
-                                                .build();
-                                    }
-
-                                    for (UnfetchedProduct unfetchedProduct : queryProductDetailsResult.getUnfetchedProductList()) {
-                                        // Handle any unfetched products as appropriate.
-                                    }
-                                } else {
-                                    Log.w(TAG, "Billing Response Code != OK");
+                billingClient!!.queryProductDetailsAsync(
+                    queryProductDetailsParams,
+                    object : ProductDetailsResponseListener {
+                        override fun onProductDetailsResponse(
+                            billingResult: BillingResult,
+                            queryProductDetailsResult: QueryProductDetailsResult
+                        ) {
+                            Log.i(TAG, "onProductDetailsResponse")
+                            if (billingResult.getResponseCode() == BillingClient.BillingResponseCode.OK) {
+                                Log.i(TAG, "Billing Response Code == OK")
+                                if (queryProductDetailsResult.getProductDetailsList().size == 0) {
+                                    Log.e(TAG, "no products found")
                                 }
+                                for (productDetails in queryProductDetailsResult.getProductDetailsList()) {
+                                    Log.i(TAG, "found product details")
+
+                                    // get product details
+                                    val productDetailsParamsList =
+                                        ImmutableList.of<ProductDetailsParams?>(
+                                            ProductDetailsParams.newBuilder() // retrieve a value for "productDetails" by calling queryProductDetailsAsync()
+                                                .setProductDetails(productDetails) // Get the offer token:
+                                                // a. For one-time products, call ProductDetails.getOneTimePurchaseOfferDetailsList()
+                                                // for a list of offers that are available to the user.
+                                                // b. For subscriptions, call ProductDetails.subscriptionOfferDetails()
+                                                // for a list of offers that are available to the user.
+                                                .setOfferToken(
+                                                    productDetails.getSubscriptionOfferDetails()!!
+                                                        .get(0).getOfferToken()
+                                                )
+                                                .build()
+                                        )
+
+                                    // set billing flow params
+                                    MBillingFlowParams = BillingFlowParams.newBuilder()
+                                        .setProductDetailsParamsList(productDetailsParamsList)
+                                        .build()
+                                }
+
+                                for (unfetchedProduct in queryProductDetailsResult.getUnfetchedProductList()) {
+                                    // Handle any unfetched products as appropriate.
+                                }
+                            } else {
+                                Log.w(TAG, "Billing Response Code != OK")
                             }
                         }
-                );
+                    }
+                )
 
                 // check purchases
-                checkSubscriptionStatus();
+                checkSubscriptionStatus()
             }
         }
     }
 
     // TODO move to billing manager
-    public void loadBillingClient() {
-        Log.i(TAG, "loadBillingClient");
+    fun loadBillingClient() {
+        Log.i(TAG, "loadBillingClient")
 
         // init billing client
-        billingClient = BillingClient.newBuilder(MainActivity.this)
-                .setListener(MainActivity.this)
-                .enablePendingPurchases(PendingPurchasesParams.newBuilder().enableOneTimeProducts().enablePrepaidPlans().build())
-                .enableAutoServiceReconnection()
-                .build();
+        billingClient = BillingClient.newBuilder(this@MainActivity)
+            .setListener(this@MainActivity)
+            .enablePendingPurchases(
+                PendingPurchasesParams.newBuilder().enableOneTimeProducts().enablePrepaidPlans()
+                    .build()
+            )
+            .enableAutoServiceReconnection()
+            .build()
 
         // connect to billing service
-        billingClient.startConnection(new MBillingClientListener());
+        billingClient!!.startConnection(MBillingClientListener())
     }
 
-    public void establishBillingConnection() {
+    fun establishBillingConnection() {
         // connect to billing service
-        billingClient.startConnection(new MBillingClientListener());
+        billingClient!!.startConnection(MBillingClientListener())
     }
 
-    @Override
-    public void onPurchasesUpdated(BillingResult billingResult, List<Purchase> purchases) {
+    override fun onPurchasesUpdated(
+        billingResult: BillingResult,
+        purchases: MutableList<Purchase>?
+    ) {
         if (billingResult.getResponseCode() == BillingClient.BillingResponseCode.OK
-                && purchases != null) {
-            for (Purchase purchase : purchases) {
-                String purchaseId = purchase.getProducts().get(0);
+            && purchases != null
+        ) {
+            for (purchase in purchases) {
+                val purchaseId = purchase.getProducts().get(0)
 
-                if (purchaseId == "savefrom_gold") {
+                if (purchaseId === "savefrom_gold") {
                     if (purchase.getPurchaseState() != Purchase.PurchaseState.PURCHASED) {
-                        Log.w(TAG, "purchase item not purchased");
+                        Log.w(TAG, "purchase item not purchased")
                     } else if (!purchase.isAcknowledged()) {
-                        Log.i(TAG, "purchase is not yet acknowledged");
+                        Log.i(TAG, "purchase is not yet acknowledged")
 
-                        handlePurchase(purchase);
+                        handlePurchase(purchase)
                     }
                 }
             }
         } else if (billingResult.getResponseCode() == BillingClient.BillingResponseCode.USER_CANCELED) {
-            Log.i(TAG, "purchase canceled");
+            Log.i(TAG, "purchase canceled")
         } else {
-            Log.i(TAG, "no purchases found");
+            Log.i(TAG, "no purchases found")
 
             // update shared prefs
-            SharedPreferences sharedPref = getSharedPreferences("SaveFromPrefs", Context.MODE_PRIVATE);
-            SharedPreferences.Editor editor = sharedPref.edit();
-            editor.putBoolean("IS_GOLD", false);
-            editor.apply();
+            val sharedPref = getSharedPreferences("SaveFromPrefs", MODE_PRIVATE)
+            val editor = sharedPref.edit()
+            editor.putBoolean("IS_GOLD", false)
+            editor.apply()
 
-            MIsGold = false;
+            MIsGold = false
 
             // update toolbar icon
-            MainActivity.this.runOnUiThread(() -> {
-                Toolbar toolbar = MainActivity.this.findViewById(R.id.toolbar);
-                MenuItem upgradeItem = toolbar.getMenu().findItem(R.id.action_upgrade);
-                upgradeItem.setIcon(ContextCompat.getDrawable(MainActivity.this, R.drawable.diamond_24));
-            });
+            this@MainActivity.runOnUiThread(Runnable {
+                val toolbar = this@MainActivity.findViewById<Toolbar>(R.id.toolbar)
+                val upgradeItem = toolbar.getMenu().findItem(R.id.action_upgrade)
+                upgradeItem.setIcon(
+                    ContextCompat.getDrawable(
+                        this@MainActivity,
+                        R.drawable.diamond_24
+                    )
+                )
+            })
         }
     }
 
-    public void checkSubscriptionStatus() {
-        QueryPurchasesParams queryPurchasesParams = QueryPurchasesParams.newBuilder()
-                        .setProductType(BillingClient.ProductType.SUBS)
-                        .build();
-        billingClient.queryPurchasesAsync(queryPurchasesParams, new PurchasesResponseListener() {
-            @Override
-            public void onQueryPurchasesResponse(@NonNull BillingResult billingResult, @NonNull List<Purchase> list) {
-                if (billingResult.getResponseCode() == BillingClient.BillingResponseCode.OK) {
-                    // return if empty
-                    if (list.size() == 0) {
-                        Log.i(TAG, "no purchases found");
+    fun checkSubscriptionStatus() {
+        val queryPurchasesParams = QueryPurchasesParams.newBuilder()
+            .setProductType(BillingClient.ProductType.SUBS)
+            .build()
+        billingClient!!.queryPurchasesAsync(
+            queryPurchasesParams,
+            object : PurchasesResponseListener {
+                override fun onQueryPurchasesResponse(
+                    billingResult: BillingResult,
+                    list: MutableList<Purchase>
+                ) {
+                    if (billingResult.getResponseCode() == BillingClient.BillingResponseCode.OK) {
+                        // return if empty
+                        if (list.size == 0) {
+                            Log.i(TAG, "no purchases found")
 
-                        // update shared prefs
-                        SharedPreferences sharedPref = getSharedPreferences("SaveFromPrefs", Context.MODE_PRIVATE);
-                        SharedPreferences.Editor editor = sharedPref.edit();
-                        editor.putBoolean("IS_GOLD", false);
-                        editor.apply();
-
-                        MIsGold = false;
-
-                        // update ui to gold
-                        MainActivity.this.runOnUiThread(() -> {
-                            Toolbar toolbar = MainActivity.this.findViewById(R.id.toolbar);
-                            MenuItem upgradeItem = toolbar.getMenu().findItem(R.id.action_upgrade);
-                            upgradeItem.setIcon(ContextCompat.getDrawable(MainActivity.this, R.drawable.diamond_24));
-                        });
-
-                        return;
-                    }
-
-                    // process purchases
-                    for (Purchase purchase :
-                            list) {
-                        if (purchase.getPurchaseState() != Purchase.PurchaseState.PURCHASED) {
-                            Log.w(TAG, "purchase state is not purchased");
-                            return;
-                        } else if (!purchase.isAcknowledged()) {
-                            MainActivity.this.handlePurchase(purchase);
-                        } else {
                             // update shared prefs
-                            SharedPreferences sharedPref = getSharedPreferences("SaveFromPrefs", Context.MODE_PRIVATE);
-                            SharedPreferences.Editor editor = sharedPref.edit();
-                            editor.putBoolean("IS_GOLD", true);
-                            editor.apply();
+                            val sharedPref = getSharedPreferences("SaveFromPrefs", MODE_PRIVATE)
+                            val editor = sharedPref.edit()
+                            editor.putBoolean("IS_GOLD", false)
+                            editor.apply()
 
-                            // set global variable
-                            MIsGold = true;
+                            MIsGold = false
 
-                            // hide banner ad
-                            mBinding.bannerContainer.setVisibility(GONE);
+                            // update ui to gold
+                            this@MainActivity.runOnUiThread(Runnable {
+                                val toolbar = this@MainActivity.findViewById<Toolbar>(R.id.toolbar)
+                                val upgradeItem = toolbar.getMenu().findItem(R.id.action_upgrade)
+                                upgradeItem.setIcon(
+                                    ContextCompat.getDrawable(
+                                        this@MainActivity,
+                                        R.drawable.diamond_24
+                                    )
+                                )
+                            })
 
-                            // update toolbar icon
-                            MainActivity.this.runOnUiThread(() -> {
-                                Toolbar toolbar = MainActivity.this.findViewById(R.id.toolbar);
-                                MenuItem upgradeItem = toolbar.getMenu().findItem(R.id.action_upgrade);
-                                upgradeItem.setIcon(ContextCompat.getDrawable(MainActivity.this, R.drawable.diamond_24_gold));
-                            });
+                            return
+                        }
+
+                        // process purchases
+                        for (purchase in list) {
+                            if (purchase.getPurchaseState() != Purchase.PurchaseState.PURCHASED) {
+                                Log.w(TAG, "purchase state is not purchased")
+                                return
+                            } else if (!purchase.isAcknowledged()) {
+                                this@MainActivity.handlePurchase(purchase)
+                            } else {
+                                // update shared prefs
+                                val sharedPref = getSharedPreferences("SaveFromPrefs", MODE_PRIVATE)
+                                val editor = sharedPref.edit()
+                                editor.putBoolean("IS_GOLD", true)
+                                editor.apply()
+
+                                // set global variable
+                                MIsGold = true
+
+                                // hide banner ad
+                                mBinding!!.bannerContainer.setVisibility(View.GONE)
+
+                                // update toolbar icon
+                                this@MainActivity.runOnUiThread(Runnable {
+                                    val toolbar =
+                                        this@MainActivity.findViewById<Toolbar>(R.id.toolbar)
+                                    val upgradeItem =
+                                        toolbar.getMenu().findItem(R.id.action_upgrade)
+                                    upgradeItem.setIcon(
+                                        ContextCompat.getDrawable(
+                                            this@MainActivity,
+                                            R.drawable.diamond_24_gold
+                                        )
+                                    )
+                                })
+                            }
                         }
                     }
                 }
-            }
-        });
+            })
     }
 
-    public void handlePurchase(Purchase purchase) {
-        AcknowledgePurchaseParams acknowledgePurchaseParams = AcknowledgePurchaseParams.newBuilder()
-                .setPurchaseToken(purchase.getPurchaseToken())
-                .build();
+    fun handlePurchase(purchase: Purchase) {
+        val acknowledgePurchaseParams = AcknowledgePurchaseParams.newBuilder()
+            .setPurchaseToken(purchase.getPurchaseToken())
+            .build()
 
-        billingClient.acknowledgePurchase(acknowledgePurchaseParams, new AcknowledgePurchaseResponseListener() {
-            @Override
-            public void onAcknowledgePurchaseResponse(@NonNull BillingResult billingResult) {
-                if (billingResult.getResponseCode() == BillingClient.BillingResponseCode.OK) {
-                    Log.i(TAG, "purchase acknowledged");
+        billingClient!!.acknowledgePurchase(
+            acknowledgePurchaseParams,
+            object : AcknowledgePurchaseResponseListener {
+                override fun onAcknowledgePurchaseResponse(billingResult: BillingResult) {
+                    if (billingResult.getResponseCode() == BillingClient.BillingResponseCode.OK) {
+                        Log.i(TAG, "purchase acknowledged")
 
-                    // update shared prefs
-                    SharedPreferences sharedPref = getSharedPreferences("SaveFromPrefs", Context.MODE_PRIVATE);
-                    SharedPreferences.Editor editor = sharedPref.edit();
-                    editor.putBoolean("IS_GOLD", true);
-                    editor.apply();
+                        // update shared prefs
+                        val sharedPref = getSharedPreferences("SaveFromPrefs", MODE_PRIVATE)
+                        val editor = sharedPref.edit()
+                        editor.putBoolean("IS_GOLD", true)
+                        editor.apply()
 
-                    // set global variable
-                    MIsGold = true;
+                        // set global variable
+                        MIsGold = true
 
-                    // hide banner ad
-                    mBinding.bannerContainer.setVisibility(GONE);
+                        // hide banner ad
+                        mBinding!!.bannerContainer.setVisibility(View.GONE)
 
-                    // update toolbar icon
-                    MainActivity.this.runOnUiThread(() -> {
-                        Toast.makeText(MainActivity.this, "Thank you, enjoy! <3", Toast.LENGTH_LONG).show();
-                        Toolbar toolbar = MainActivity.this.findViewById(R.id.toolbar);
-                        MenuItem upgradeItem = toolbar.getMenu().findItem(R.id.action_upgrade);
-                        upgradeItem.setIcon(ContextCompat.getDrawable(MainActivity.this, R.drawable.diamond_24_gold));
-                        MainActivity.this.showEmptyLayout();
-                    });
+                        // update toolbar icon
+                        this@MainActivity.runOnUiThread(Runnable {
+                            Toast.makeText(
+                                this@MainActivity,
+                                "Thank you, enjoy! <3",
+                                Toast.LENGTH_LONG
+                            ).show()
+                            val toolbar = this@MainActivity.findViewById<Toolbar>(R.id.toolbar)
+                            val upgradeItem = toolbar.getMenu().findItem(R.id.action_upgrade)
+                            upgradeItem.setIcon(
+                                ContextCompat.getDrawable(
+                                    this@MainActivity,
+                                    R.drawable.diamond_24_gold
+                                )
+                            )
+                            this@MainActivity.showEmptyLayout()
+                        })
+                    }
                 }
-            }
-        });
+            })
     }
 
     // TODO move to ads manager
-    public void loadAdmob() {
+    fun loadAdmob() {
         // init admob
         /*
         // Google UMP debug settings
@@ -472,757 +487,736 @@ public class MainActivity extends AppCompatActivity implements PurchasesUpdatedL
          */
 
         // create a consent request parameters object
-        ConsentRequestParameters params = new ConsentRequestParameters
-                .Builder()
-                //.setConsentDebugSettings(debugSettings)
-                .build();
 
-        consentInformation = UserMessagingPlatform.getConsentInformation(this);
+        val params = ConsentRequestParameters.Builder() //.setConsentDebugSettings(debugSettings)
+            .build()
+
+        consentInformation = UserMessagingPlatform.getConsentInformation(this)
         //consentInformation.reset();
-        consentInformation.requestConsentInfoUpdate(
-                this,
-                params,
-                (ConsentInformation.OnConsentInfoUpdateSuccessListener) () -> {
-                    // load and show the consent form.
-                    UserMessagingPlatform.loadAndShowConsentFormIfRequired(
-                            this,
-                            (ConsentForm.OnConsentFormDismissedListener) loadAndShowError -> {
-                                if (loadAndShowError != null) {
-                                    // Consent gathering failed.
-                                    Log.w(TAG, String.format("%s: %s",
-                                            loadAndShowError.getErrorCode(),
-                                            loadAndShowError.getMessage()));
-                                }
+        consentInformation!!.requestConsentInfoUpdate(
+            this,
+            params,
+            OnConsentInfoUpdateSuccessListener {
+                // load and show the consent form.
+                UserMessagingPlatform.loadAndShowConsentFormIfRequired(
+                    this,
+                    OnConsentFormDismissedListener { loadAndShowError: FormError? ->
+                        if (loadAndShowError != null) {
+                            // Consent gathering failed.
+                            Log.w(
+                                TAG, String.format(
+                                    "%s: %s",
+                                    loadAndShowError.getErrorCode(),
+                                    loadAndShowError.getMessage()
+                                )
+                            )
+                        }
+                        // consent gathered
+                        if (consentInformation!!.canRequestAds() &&
+                            !MIsGold
+                        ) {
+                            // initialize admob sdk
+                            MobileAds.initialize(
+                                this,
+                                OnInitializationCompleteListener { initializationStatus: InitializationStatus? -> })
 
-                                // consent gathered
-                                if (consentInformation.canRequestAds() &&
-                                        !MIsGold) {
-                                    // initialize admob sdk
-                                    MobileAds.initialize(this, initializationStatus -> {});
-
-                                    // load admob ads
-                                    mBinding.bannerContainer.setVisibility(View.VISIBLE);
-                                    AdsManager.loadAdmobInterstitialAd(MainActivity.this);
-                                    AdsManager.loadBanner(MainActivity.this, mBinding);
-                                }
-
-                                if (isPrivacyOptionsRequired()) {
-                                    // Regenerate the options menu to include privacy settings
-                                    invalidateOptionsMenu();
-                                }
-                            }
-                    );
-                },
-                (ConsentInformation.OnConsentInfoUpdateFailureListener) requestConsentError -> {
-                    // Consent gathering failed.
-                    Log.w(TAG, String.format("%s: %s",
-                            requestConsentError.getErrorCode(),
-                            requestConsentError.getMessage()));
-                });
+                            // load admob ads
+                            mBinding!!.bannerContainer.setVisibility(View.VISIBLE)
+                            AdsManager.loadAdmobInterstitialAd(this@MainActivity)
+                            AdsManager.loadBanner(this@MainActivity, mBinding!!)
+                        }
+                        if (this.isPrivacyOptionsRequired) {
+                            // Regenerate the options menu to include privacy settings
+                            invalidateOptionsMenu()
+                        }
+                    }
+                )
+            },
+            OnConsentInfoUpdateFailureListener { requestConsentError: FormError? ->
+                // Consent gathering failed.
+                Log.w(
+                    TAG, String.format(
+                        "%s: %s",
+                        requestConsentError!!.getErrorCode(),
+                        requestConsentError.getMessage()
+                    )
+                )
+            })
 
         // TODO look into using IMA SDK
         // Check if you can initialize the IMA SDK in parallel
         // while checking for new consent information. Consent obtained in
         // the previous session can be used to request ads.
-        if (consentInformation.canRequestAds() &&
-                !MIsGold) {
+        if (consentInformation!!.canRequestAds() &&
+            !MIsGold
+        ) {
             // initialize Google Admob SDK
-            MobileAds.initialize(this, initializationStatus -> {});
+            MobileAds.initialize(
+                this,
+                OnInitializationCompleteListener { initializationStatus: InitializationStatus? -> })
 
             // load admob ads
-            mBinding.bannerContainer.setVisibility(View.VISIBLE);
-            AdsManager.loadAdmobInterstitialAd(MainActivity.this);
-            AdsManager.loadBanner(MainActivity.this, mBinding);
+            mBinding!!.bannerContainer.setVisibility(View.VISIBLE)
+            AdsManager.loadAdmobInterstitialAd(this@MainActivity)
+            AdsManager.loadBanner(this@MainActivity, mBinding!!)
         }
     }
 
-    public boolean isPrivacyOptionsRequired() {
-        return consentInformation.getPrivacyOptionsRequirementStatus()
-                == ConsentInformation.PrivacyOptionsRequirementStatus.REQUIRED;
-    }
+    val isPrivacyOptionsRequired: Boolean
+        get() = (consentInformation!!.getPrivacyOptionsRequirementStatus()
+                == ConsentInformation.PrivacyOptionsRequirementStatus.REQUIRED)
 
-    // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~  PERMISSIONS  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-    public static String[] req_permissions_old = {
-            Manifest.permission.WRITE_EXTERNAL_STORAGE,
-            Manifest.permission.READ_EXTERNAL_STORAGE
-    };
-
-    @RequiresApi(api = Build.VERSION_CODES.TIRAMISU)
-    public static String[] req_permissions = {
-            Manifest.permission.READ_MEDIA_IMAGES,
-            Manifest.permission.READ_MEDIA_AUDIO,
-            Manifest.permission.READ_MEDIA_VIDEO,
-            Manifest.permission.POST_NOTIFICATIONS
-    };
-
-    public static String[] getStoragePermissions() {
-        String[] p;
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            p = req_permissions;
-        } else {
-            p = req_permissions_old;
-        }
-        return p;
-    }
-
-    private boolean hasNotificationPermission() {
+    private fun hasNotificationPermission(): Boolean {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU
-                && ActivityCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {
-            return false;
+            && ActivityCompat.checkSelfPermission(
+                this,
+                Manifest.permission.POST_NOTIFICATIONS
+            ) != PackageManager.PERMISSION_GRANTED
+        ) {
+            return false
         } else {
-            return true;
+            return true
         }
     }
 
-    public boolean isCurrentDateBeforeSpecificDate() {
-        LocalDate currentDate = LocalDate.now();
+    val isCurrentDateBeforeSpecificDate: Boolean
+        get() {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                val currentDate = LocalDate.now()
 
-        LocalDate specificDate = LocalDate.of(2025, 12, 5);
+                val specificDate = LocalDate.of(2025, 12, 5)
+                return currentDate.isBefore(specificDate)
+            } else {
+                return true
+            }
+        }
 
-        return currentDate.isBefore(specificDate);
-    }
-
-    private void initMainViews() {
-        initAnimations();
-        mBinding.mainScroll.setSmoothScrollingEnabled(true);
+    private fun initMainViews() {
+        initAnimations()
+        mBinding!!.mainScroll.setSmoothScrollingEnabled(true)
 
         // toolbar
-        Toolbar toolbar = findViewById(R.id.toolbar);
-        setSupportActionBar(toolbar);
+        val toolbar = findViewById<Toolbar?>(R.id.toolbar)
+        setSupportActionBar(toolbar)
 
         // search bar
-        mBinding.mainSearchBar.addTextChangeListener(new TextWatcher() {
-            int oldCount;
+        mBinding!!.mainSearchBar.addTextChangeListener(object : TextWatcher {
+            var oldCount: Int = 0
 
-            @Override
-            public void beforeTextChanged(CharSequence s, int start, int count, int after) {
-                oldCount = count;
+            override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {
+                oldCount = count
             }
 
-            @Override
-            public void onTextChanged(final CharSequence s, int start, int before, int count) {
+            override fun onTextChanged(s: CharSequence, start: Int, before: Int, count: Int) {
                 if (count == 0 && oldCount != 0) {
                     // text cleared
-                    killKeyboard();
-                    showEmptyLayout();
+                    killKeyboard()
+                    showEmptyLayout()
                 } else if (count - oldCount > 1) {
-                    String input = s.toString();
+                    var input = s.toString()
 
-                    boolean delay = false;
+                    var delay = false
                     if (input.contains("youtube.com") || input.contains("youtu.be")) {
                         // validate date
-                        delay = isCurrentDateBeforeSpecificDate();
-                        String msg = "delay="+delay;
-                        Log.i(TAG, msg);
+                        delay = isCurrentDateBeforeSpecificDate
+                        val msg = "delay=" + delay
+                        Log.i(TAG, msg)
                     }
 
                     // validate input
                     if (!input.contains("https://") || delay) {
                         // log invalid input and exit
                         try {
-                            Bundle bundle = new Bundle();
-                            bundle.putString("app_name", "savefrom");
-                            bundle.putString("input", input);
-                            FirebaseAnalytics.getInstance(MainActivity.this)
-                                    .logEvent("invalid_input", bundle);
-                        } catch (Exception ignored) {}
+                            val bundle = Bundle()
+                            bundle.putString("app_name", "savefrom")
+                            bundle.putString("input", input)
+                            FirebaseAnalytics.getInstance(this@MainActivity)
+                                .logEvent("invalid_input", bundle)
+                        } catch (ignored: Exception) {
+                        }
 
-                        Toast.makeText(MainActivity.this, "Video unavailable, try again later", Toast.LENGTH_SHORT).show();
-                        return;
+                        Toast.makeText(
+                            this@MainActivity,
+                            "Video unavailable, try again later",
+                            Toast.LENGTH_SHORT
+                        ).show()
+                        return
                     } else if (input.contains("instagram.com")) {
-                        showBigFrag("InFlyer");
-                        return;
+                        showBigFrag("InFlyer")
+                        return
                     }
 
                     // if 'https://' duplicated, trim to second instance
                     if (input.lastIndexOf("https://") != input.indexOf("https://")) {
-                        input = input.substring(input.lastIndexOf("https://"));
+                        input = input.substring(input.lastIndexOf("https://"))
                     }
-                    final String inputText = input;
+                    val inputText = input
 
                     // log valid input & domain
-                    String domain = input.substring(input.indexOf("https://")+8);
+                    var domain = input.substring(input.indexOf("https://") + 8)
                     if (domain.contains("/")) {
-                        domain = domain.substring(0, domain.indexOf("/"));
+                        domain = domain.substring(0, domain.indexOf("/"))
                     }
                     try {
-                        Bundle bundle = new Bundle();
-                        bundle.putString("app_name", "savefrom");
-                        bundle.putString("input", input);
-                        bundle.putString("domain", domain);
-                        FirebaseAnalytics.getInstance(MainActivity.this)
-                                .logEvent("valid_input", bundle);
-                    } catch (Exception ignored) {}
+                        val bundle = Bundle()
+                        bundle.putString("app_name", "savefrom")
+                        bundle.putString("input", input)
+                        bundle.putString("domain", domain)
+                        FirebaseAnalytics.getInstance(this@MainActivity)
+                            .logEvent("valid_input", bundle)
+                    } catch (ignored: Exception) {
+                    }
 
                     // update ui
-                    killKeyboard();
-                    showLoadingLayout();
+                    killKeyboard()
+                    showLoadingLayout()
 
                     // check for internet
-                    if (isInternetAvailable()) {
+                    if (isInternetAvailable) {
                         // save input url
-                        prefsManager.setOriginalUrl(inputText);
+                        prefsManager!!.originalUrl = inputText
 
                         // start loading preview
-                        new Thread(() -> {
-                            loadVideoInfo(inputText);
-                        }).start();
+                        Thread(Runnable {
+                            loadVideoInfo(inputText)
+                        }).start()
                     } else {
-                        Toast.makeText(MainActivity.this, getString(R.string.msg_no_internet), Toast.LENGTH_SHORT).show();
+                        Toast.makeText(
+                            this@MainActivity,
+                            getString(R.string.msg_no_internet),
+                            Toast.LENGTH_SHORT
+                        ).show()
                     }
+                }
             }
-        }
 
-            @Override
-            public void afterTextChanged(Editable s) {
-
+            override fun afterTextChanged(s: Editable?) {
             }
-        });
+        })
 
         // init spinner
-        Spinner spinner = (Spinner) findViewById(R.id.res_spinner);
-        ArrayAdapter<CharSequence> adapter = ArrayAdapter.createFromResource(
-                this,
-                R.array.res_array,
-                android.R.layout.simple_spinner_item
-        );
-        adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
-        spinner.setAdapter(adapter);
+        val spinner = findViewById<View?>(R.id.res_spinner) as Spinner
+        val adapter = ArrayAdapter.createFromResource(
+            this,
+            R.array.res_array,
+            android.R.layout.simple_spinner_item
+        )
+        adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
+        spinner.setAdapter(adapter)
 
         // set default resolution
-        SharedPreferences sharedPref = getSharedPreferences("SaveFromPrefs", Context.MODE_PRIVATE);
-        int selectionIndex = sharedPref.getInt("RES_POSITION", 0);
-        spinner.setSelection(selectionIndex);
+        val sharedPref = getSharedPreferences("SaveFromPrefs", MODE_PRIVATE)
+        val selectionIndex = sharedPref.getInt("RES_POSITION", 0)
+        spinner.setSelection(selectionIndex)
 
         // spinner item selected listener
-        spinner.setOnItemSelectedListener(this);
+        spinner.setOnItemSelectedListener(this)
 
         // permission frag
         if (!isBackgroundEnabled) {
-            Log.i(TAG, "showing permission holder");
-            mBinding.permissionHolder.setVisibility(View.VISIBLE);
+            Log.i(TAG, "showing permission holder")
+            mBinding!!.permissionHolder.setVisibility(View.VISIBLE)
         }
     }
 
-    private void initAnimations() {
+    private fun initAnimations() {
         // Load entrance animation
-        fadeIn = AnimationUtils.loadAnimation(MainActivity.this, R.anim.fade_in);
-        fadeIn.setDuration(432);
-        fadeIn.setInterpolator(new AccelerateInterpolator());
+        fadeIn = AnimationUtils.loadAnimation(this@MainActivity, R.anim.fade_in)
+        fadeIn!!.setDuration(432)
+        fadeIn!!.setInterpolator(AccelerateInterpolator())
 
         // Load exit animation
-        fadeOut = AnimationUtils.loadAnimation(MainActivity.this, R.anim.fade_out);
-        fadeOut.setDuration(432);
-        fadeOut.setInterpolator(new AccelerateInterpolator());
+        fadeOut = AnimationUtils.loadAnimation(this@MainActivity, R.anim.fade_out)
+        fadeOut!!.setDuration(432)
+        fadeOut!!.setInterpolator(AccelerateInterpolator())
     }
 
-    public void killKeyboard() {
-        InputMethodManager imm = (InputMethodManager)
-                getSystemService(Context.INPUT_METHOD_SERVICE);
+    fun killKeyboard() {
+        val imm = getSystemService(INPUT_METHOD_SERVICE) as InputMethodManager
         imm.hideSoftInputFromWindow(
-                findViewById(R.id.main_search_bar).getWindowToken(),
-                0);
+            findViewById<View?>(R.id.main_search_bar).getWindowToken(),
+            0
+        )
     }
 
-    /**
-     * Check if device is connected to internet
-     * @return is device connected to internet?
-     */
-    public static boolean isInternetAvailable() {
-        try {
-            InetAddress ipAddr = InetAddress.getByName("google.com");
-            return !ipAddr.toString().isEmpty();
-
-        } catch (Exception e) {
-            return false;
-        }
+    override fun onCreateOptionsMenu(menu: Menu?): Boolean {
+        val inflater = getMenuInflater()
+        inflater.inflate(R.menu.main, menu)
+        return true
     }
 
-    @Override
-    public boolean onCreateOptionsMenu(Menu menu) {
-        MenuInflater inflater = getMenuInflater();
-        inflater.inflate(R.menu.main, menu);
-        return true;
-    }
-
-    @Override
-    public boolean onOptionsItemSelected(MenuItem item) {
+    override fun onOptionsItemSelected(item: MenuItem): Boolean {
         // Handle item selection.
-        switch (item.getItemId()) {
-            default:
-                return super.onOptionsItemSelected(item);
+        when (item.getItemId()) {
+            else -> return super.onOptionsItemSelected(item)
         }
     }
 
-    public void onUpgradeClick(MenuItem menuItem) {
-        showBigFrag(menuItem);
+    fun onUpgradeClick(menuItem: MenuItem) {
+        showBigFrag(menuItem)
     }
 
     // open about page
-    public void onAboutClick(MenuItem menuItem) {
-        String aboutUrl = "https://mobileapps.green/";
-        Intent aboutIntent = new Intent(Intent.ACTION_VIEW, Uri.parse(aboutUrl));
-        MainActivity.this.startActivity(aboutIntent);
+    fun onAboutClick(menuItem: MenuItem?) {
+        val aboutUrl = "https://mobileapps.green/"
+        val aboutIntent = Intent(Intent.ACTION_VIEW, Uri.parse(aboutUrl))
+        this@MainActivity.startActivity(aboutIntent)
     }
 
     // open privacy policy page
-    public void onPrivacyClick(MenuItem menuItem) {
-        String privacyUrl = "https://mobileapps.green/privacy-policy";
-        Intent privacyIntent = new Intent(Intent.ACTION_VIEW, Uri.parse(privacyUrl));
-        MainActivity.this.startActivity(privacyIntent);
+    fun onPrivacyClick(menuItem: MenuItem?) {
+        val privacyUrl = "https://mobileapps.green/privacy-policy"
+        val privacyIntent = Intent(Intent.ACTION_VIEW, Uri.parse(privacyUrl))
+        this@MainActivity.startActivity(privacyIntent)
     }
 
-    public void onRateClick(MenuItem menuItem) {
-        final String appPackageName = getPackageName(); // getPackageName() from Context or Activity object
+    fun onRateClick(menuItem: MenuItem?) {
+        val appPackageName = getPackageName() // getPackageName() from Context or Activity object
         try {
-            startActivity(new Intent(Intent.ACTION_VIEW, Uri.parse("market://details?id=" + appPackageName)));
-        } catch (android.content.ActivityNotFoundException anfe) {
-            startActivity(new Intent(Intent.ACTION_VIEW, Uri.parse("https://play.google.com/store/apps/details?id=" + appPackageName)));
+            startActivity(
+                Intent(
+                    Intent.ACTION_VIEW,
+                    Uri.parse("market://details?id=" + appPackageName)
+                )
+            )
+        } catch (anfe: ActivityNotFoundException) {
+            startActivity(
+                Intent(
+                    Intent.ACTION_VIEW,
+                    Uri.parse("https://play.google.com/store/apps/details?id=" + appPackageName)
+                )
+            )
         }
-    }
-
-    public static void setProgress(String progressStr) {
-        Log.i(TAG, "setProgress: " + progressStr);
-        progressStr = progressStr.trim().replace("%", "");
-        int progress = (int)Double.parseDouble(progressStr);
-
-        // update activity ui
-        MainActivity.activityCurrent.runOnUiThread(() -> {
-            MainActivity.activityCurrent.mBinding.numProgress.setVisibility(View.VISIBLE);
-            MainActivity.activityCurrent.mBinding.numProgress.setProgress(progress);
-        });
-
-        // update notification
-        MainActivity.activityCurrent.mDownloadService.setProgress(100, progress);
     }
 
     /**
      * Create fragment corresponding to clicked view
      * @param mi clicked menu item
-     *
+     * 
      * By Max Green  12/5/2020
      */
-    public void showBigFrag(MenuItem mi) {
-        showBigFrag(mi.getTitle().toString());
+    fun showBigFrag(mi: MenuItem) {
+        showBigFrag(mi.getTitle().toString())
     }
 
-    public void showBigFrag(String title) {
-        Bundle extras = new Bundle();
-        extras.putString(getString(R.string.key_extra_menu_item_title), title);
+    fun showBigFrag(title: String?) {
+        val extras = Bundle()
+        extras.putString(getString(R.string.key_extra_menu_item_title), title)
 
         // Create fragment, add extras
-        BigFragment bigFragment = new BigFragment();
-        bigFragment.setArguments(extras);
+        val bigFragment = BigFragment()
+        bigFragment.setArguments(extras)
 
         // Inflate fragment
-        ConstraintLayout fragView = this.findViewById(R.id.big_frag_holder);
-        fragView.removeAllViews();
-        fragView.setVisibility(View.VISIBLE);
+        val fragView = this.findViewById<ConstraintLayout>(R.id.big_frag_holder)
+        fragView.removeAllViews()
+        fragView.setVisibility(View.VISIBLE)
         getSupportFragmentManager().beginTransaction()
-                .setReorderingAllowed(true)
-                .add(R.id.big_frag_holder, bigFragment, null)
-                .commitAllowingStateLoss();
+            .setReorderingAllowed(true)
+            .add(R.id.big_frag_holder, bigFragment, null)
+            .commitAllowingStateLoss()
     }
 
     /**
      * Hide fragment (holder)
      * @param v close button (clicked)
      */
-    public void closeBigFrag(View v) {
-        closeBigFrag();
+    fun closeBigFrag(v: View?) {
+        closeBigFrag()
     }
 
-    public void closeBigFrag() {
-        ConstraintLayout fragHolder = findViewById(R.id.big_frag_holder);
-        fragHolder.setVisibility(GONE);
+    fun closeBigFrag() {
+        val fragHolder = findViewById<ConstraintLayout>(R.id.big_frag_holder)
+        fragHolder.setVisibility(View.GONE)
     }
 
-    public void showFileFrag() {
-        String fileName = prefsManager.getFileName();
-        String fileExt = prefsManager.getFileExt();
-        final String absPath = ABS_PATH_DOCS + fileName + "." + fileExt;
+    fun showFileFrag() {
+        val fileName = prefsManager!!.fileName
+        val fileExt = prefsManager!!.fileExt
+        val absPath = ABS_PATH_DOCS + fileName + "." + fileExt
 
         // inflate fragment
-        runOnUiThread(() -> {
-            Bundle extras = new Bundle();
-            extras.putString(getString(R.string.key_extra_abs_filepath), absPath);
+        runOnUiThread(Runnable {
+            val extras = Bundle()
+            extras.putString(getString(R.string.key_extra_abs_filepath), absPath)
             // Create fragment
-            FileFragment fileFragment = new FileFragment();
-            fileFragment.setArguments(extras);
-            ConstraintLayout fragView = MainActivity.this.findViewById(R.id.file_hint_holder);
-            fragView.removeAllViews();
-            fragView.startAnimation(fadeIn);
-            fragView.setVisibility(View.VISIBLE);
+            val fileFragment = FileFragment()
+            fileFragment.setArguments(extras)
+            val fragView = this@MainActivity.findViewById<ConstraintLayout>(R.id.file_hint_holder)
+            fragView.removeAllViews()
+            fragView.startAnimation(fadeIn)
+            fragView.setVisibility(View.VISIBLE)
             getSupportFragmentManager().beginTransaction()
-                    .setReorderingAllowed(true)
-                    .add(R.id.file_hint_holder, fileFragment, null)
-                    .commitAllowingStateLoss();
-        });
+                .setReorderingAllowed(true)
+                .add(R.id.file_hint_holder, fileFragment, null)
+                .commitAllowingStateLoss()
+        })
     }
 
-    public void closeFileFrag() {
+    fun closeFileFrag() {
         if (fileFragment != null) {
-            FragmentManager fm = getSupportFragmentManager();
-            FragmentTransaction transaction = fm.beginTransaction();
-            transaction.remove(fileFragment).commitAllowingStateLoss();
+            val fm = getSupportFragmentManager()
+            val transaction = fm.beginTransaction()
+            transaction.remove(fileFragment!!).commitAllowingStateLoss()
         }
 
         // hide holder view
-        ConstraintLayout fragHolder = findViewById(R.id.file_hint_holder);
-        fragHolder.setVisibility(GONE);
+        val fragHolder = findViewById<ConstraintLayout>(R.id.file_hint_holder)
+        fragHolder.setVisibility(View.GONE)
     }
 
-    private void showEmptyLayout() {
-        Log.i(TAG, "showEmptyLayout");
+    private fun showEmptyLayout() {
+        Log.i(TAG, "showEmptyLayout")
 
-        closeBigFrag();
-        closeFileFrag();
+        closeBigFrag()
+        closeFileFrag()
 
-        mBinding.imgPreview.setVisibility(GONE);
-        mBinding.glowingLoader.setVisibility(GONE);
-        mBinding.mainSearchBar.setText("");
-        mBinding.btnDownload.setVisibility(GONE);
-        mBinding.btnDownload.setEnabled(false);
-        mBinding.numProgress.setVisibility(GONE);
-        mBinding.ivCircle.setVisibility(View.VISIBLE);
-        mBinding.btnPaste.setVisibility(View.VISIBLE);
-        mBinding.filenameEdittext.setEnabled(false);
-        mBinding.filenameEdittext.setHintTextColor(getColor(R.color.shadowInvisible));
-        mBinding.filenameEdittext.setText("");
+        mBinding!!.imgPreview.setVisibility(View.GONE)
+        mBinding!!.glowingLoader.setVisibility(View.GONE)
+        mBinding!!.mainSearchBar.setText("")
+        mBinding!!.btnDownload.setVisibility(View.GONE)
+        mBinding!!.btnDownload.setEnabled(false)
+        mBinding!!.numProgress.setVisibility(View.GONE)
+        mBinding!!.ivCircle.setVisibility(View.VISIBLE)
+        mBinding!!.btnPaste.setVisibility(View.VISIBLE)
+        mBinding!!.filenameEdittext.setEnabled(false)
+        mBinding!!.filenameEdittext.setHintTextColor(getColor(R.color.shadowInvisible))
+        mBinding!!.filenameEdittext.setText("")
         if (!isBackgroundEnabled) {
-            Log.i(TAG, "showing permission holder");
-            mBinding.permissionHolder.setVisibility(View.VISIBLE);
+            Log.i(TAG, "showing permission holder")
+            mBinding!!.permissionHolder.setVisibility(View.VISIBLE)
         }
-
     }
 
-    private void showLoadingLayout() {
-        Log.i(TAG, "showLoadingLayout()");
+    private fun showLoadingLayout() {
+        Log.i(TAG, "showLoadingLayout()")
 
-        Toast.makeText(this, "Loading… this may take a moment", Toast.LENGTH_LONG).show();
+        Toast.makeText(this, "Loading… this may take a moment", Toast.LENGTH_LONG).show()
 
-        closeFileFrag();
-        mBinding.imgPreview.setVisibility(View.INVISIBLE);
-        mBinding.btnDownload.setVisibility(GONE);
-        mBinding.btnDownload.setEnabled(false);
-        mBinding.numProgress.setVisibility(GONE);
-        mBinding.glowingLoader.startAnimation(fadeIn);
-        mBinding.glowingLoader.setVisibility(View.VISIBLE);
-        mBinding.ivCircle.setVisibility(View.INVISIBLE);
-        mBinding.btnPaste.setVisibility(GONE);
+        closeFileFrag()
+        mBinding!!.imgPreview.setVisibility(View.INVISIBLE)
+        mBinding!!.btnDownload.setVisibility(View.GONE)
+        mBinding!!.btnDownload.setEnabled(false)
+        mBinding!!.numProgress.setVisibility(View.GONE)
+        mBinding!!.glowingLoader.startAnimation(fadeIn)
+        mBinding!!.glowingLoader.setVisibility(View.VISIBLE)
+        mBinding!!.ivCircle.setVisibility(View.INVISIBLE)
+        mBinding!!.btnPaste.setVisibility(View.GONE)
 
         // show interstitial ad
-        runOnUiThread(() -> {
+        runOnUiThread(Runnable {
             if (!MIsGold) {
-                AdsManager.showInterstitialAd(MainActivity.this);
+                AdsManager.showInterstitialAd(this@MainActivity)
             }
-        });
+        })
     }
 
-    private void showPreviewLayout() {
-        Log.i(TAG, "showPreviewLayout()");
+    private fun showPreviewLayout() {
+        Log.i(TAG, "showPreviewLayout()")
 
-        String thumbnailUrl = prefsManager.getThumbnailUrl();
+        val thumbnailUrl = prefsManager!!.thumbnailUrl
 
-        updateEditFilenameView(prefsManager.getFileName());
-        mBinding.btnPaste.setVisibility(GONE);
-        mBinding.imgPreview.setAlpha(1.0f);
-        mBinding.imgPreview.setVisibility(View.VISIBLE);
-        Picasso.Builder builder = new Picasso.Builder(MainActivity.this);
-        builder.listener(new Picasso.Listener()
-        {
-            @Override
-            public void onImageLoadFailed(Picasso picasso, Uri uri, Exception exception)
-            {
+        updateEditFilenameView(prefsManager!!.fileName)
+        mBinding!!.btnPaste.setVisibility(View.GONE)
+        mBinding!!.imgPreview.setAlpha(1.0f)
+        mBinding!!.imgPreview.setVisibility(View.VISIBLE)
+        val builder = Picasso.Builder(this@MainActivity)
+        builder.listener(object : Picasso.Listener {
+            override fun onImageLoadFailed(picasso: Picasso?, uri: Uri?, exception: Exception?) {
                 // TODO handle picasso error
             }
-        });
-        if (!thumbnailUrl.isEmpty()) {
+        })
+        if (thumbnailUrl?.isNotEmpty() == true) {
             builder.build().load(thumbnailUrl)
-                    .fit()
-                    .centerCrop()
-                    .into(mBinding.imgPreview, previewCallback);
+                .fit()
+                .centerCrop()
+                .into(mBinding!!.imgPreview, previewCallback)
         }
     }
 
-    private final Callback previewCallback = new Callback() {
-        @Override
-        public void onSuccess() {
-            Log.i(TAG, "onSuccess() decorating preview...");
-            mBinding.glowingLoader.startAnimation(fadeOut);
-            mBinding.glowingLoader.setVisibility(GONE);
-            mBinding.numProgress.setVisibility(GONE);
+    private val previewCallback: Callback = object : Callback {
+        override fun onSuccess() {
+            Log.i(TAG, "onSuccess() decorating preview...")
+            mBinding!!.glowingLoader.startAnimation(fadeOut)
+            mBinding!!.glowingLoader.setVisibility(View.GONE)
+            mBinding!!.numProgress.setVisibility(View.GONE)
             // draw circle
-            mBinding.ivCircle.setVisibility(View.VISIBLE);
-            ((Animatable)mBinding.ivCircle.getDrawable()).start();
+            mBinding!!.ivCircle.setVisibility(View.VISIBLE)
+            (mBinding!!.ivCircle.getDrawable() as Animatable).start()
             // ...after circle is drawn
-            new Handler().postDelayed(() -> {
-                mBinding.btnDownload.setVisibility(View.VISIBLE);
-                mBinding.btnDownload.setEnabled(true);
-                mBinding.btnDownload.startAnimation(fadeIn);
-                mBinding.filenameEdittext.setEnabled(true);
-                mBinding.filenameEdittext.setHintTextColor(getColor(R.color.shadowInverse));
-            }, 432);
+            Handler().postDelayed(Runnable {
+                mBinding!!.btnDownload.setVisibility(View.VISIBLE)
+                mBinding!!.btnDownload.setEnabled(true)
+                mBinding!!.btnDownload.startAnimation(fadeIn)
+                mBinding!!.filenameEdittext.setEnabled(true)
+                mBinding!!.filenameEdittext.setHintTextColor(getColor(R.color.shadowInverse))
+            }, 432)
         }
-        @Override
-        public void onError(Exception e) {
-            Log.e("onPicassoFinished", ".onError()");
-            e.printStackTrace();
-            mBinding.btnPaste.setVisibility(GONE);
-            mBinding.glowingLoader.startAnimation(fadeOut);
-            mBinding.glowingLoader.setVisibility(GONE);
-            mBinding.imgPreview.setVisibility(GONE);
+
+        override fun onError(e: Exception) {
+            Log.e("onPicassoFinished", ".onError()")
+            e.printStackTrace()
+            mBinding!!.btnPaste.setVisibility(View.GONE)
+            mBinding!!.glowingLoader.startAnimation(fadeOut)
+            mBinding!!.glowingLoader.setVisibility(View.GONE)
+            mBinding!!.imgPreview.setVisibility(View.GONE)
             // draw circle
-            mBinding.ivCircle.setVisibility(View.VISIBLE);
-            ((Animatable)mBinding.ivCircle.getDrawable()).start();
+            mBinding!!.ivCircle.setVisibility(View.VISIBLE)
+            (mBinding!!.ivCircle.getDrawable() as Animatable).start()
             // ...after circle is drawn
-            new Handler().postDelayed(() -> {
-                mBinding.btnDownload.setVisibility(View.VISIBLE);
-                mBinding.btnDownload.setEnabled(true);
-                mBinding.filenameEdittext.setEnabled(true);
-                mBinding.filenameEdittext.setHintTextColor(getColor(R.color.shadowInverse));
-                mBinding.mainScroll.smoothScrollTo(0, mBinding.fileHintHolder.getBottom());
-            }, 432);
+            Handler().postDelayed(Runnable {
+                mBinding!!.btnDownload.setVisibility(View.VISIBLE)
+                mBinding!!.btnDownload.setEnabled(true)
+                mBinding!!.filenameEdittext.setEnabled(true)
+                mBinding!!.filenameEdittext.setHintTextColor(getColor(R.color.shadowInverse))
+                mBinding!!.mainScroll.smoothScrollTo(0, mBinding!!.fileHintHolder.getBottom())
+            }, 432)
         }
-    };
-
-    private void showDownloadingLayout() {
-        Log.i(TAG, "showDownloadingLayout()");
-
-        Toast.makeText(this, "Downloading in background…", Toast.LENGTH_SHORT).show();
-
-        updateFilenamePref();
-        mBinding.btnDownload.setEnabled(false);
-        mBinding.ivCircle.startAnimation(fadeOut);
-        mBinding.btnDownload.startAnimation(fadeOut);
-        mBinding.ivCircle.setVisibility(GONE);
-        mBinding.btnDownload.setVisibility(GONE);
-        mBinding.imgPreview.setAlpha(0.69f);
-        mBinding.numProgress.setVisibility(View.VISIBLE);
-        mBinding.numProgress.setProgress(0);
-        //mBinding.permissionHolder.setVisibility(View.GONE);
-        new Handler().postDelayed(() -> {
-            mBinding.glowingLoader.startAnimation(fadeIn);
-            mBinding.glowingLoader.setVisibility(View.VISIBLE);
-            mBinding.filenameEdittext.setEnabled(false);
-            mBinding.filenameEdittext.setHintTextColor(getColor(R.color.shadowInvisible));
-        }, 200);
     }
 
-    private void showFinishLayout() {
-        Log.i(TAG, "showFinishLayout()");
-        //mBinding.permissionHolder.setVisibility(View.GONE);
-        showFileFrag();
+    private fun showDownloadingLayout() {
+        Log.i(TAG, "showDownloadingLayout()")
 
-        mBinding.ivCircle.setVisibility(GONE);
-        mBinding.glowingLoader.setVisibility(GONE);
-        mBinding.imgPreview.setAlpha(1.0f);
-        mBinding.btnDownload.setVisibility(GONE);
-        mBinding.btnDownload.setEnabled(false);
-        mBinding.btnPaste.setVisibility(View.VISIBLE);
-        mBinding.btnPaste.setEnabled(true);
-        mBinding.ivCircle.setVisibility(View.VISIBLE);
-        mBinding.numProgress.setVisibility(GONE);
-        mBinding.numProgress.setProgress(0);
-        mBinding.mainScroll.smoothScrollTo(0, mBinding.mainScroll.getBottom());
+        Toast.makeText(this, "Downloading in background…", Toast.LENGTH_SHORT).show()
+
+        updateFilenamePref()
+        mBinding!!.btnDownload.setEnabled(false)
+        mBinding!!.ivCircle.startAnimation(fadeOut)
+        mBinding!!.btnDownload.startAnimation(fadeOut)
+        mBinding!!.ivCircle.setVisibility(View.GONE)
+        mBinding!!.btnDownload.setVisibility(View.GONE)
+        mBinding!!.imgPreview.setAlpha(0.69f)
+        mBinding!!.numProgress.setVisibility(View.VISIBLE)
+        mBinding!!.numProgress.setProgress(0)
+        //mBinding.permissionHolder.setVisibility(View.GONE);
+        Handler().postDelayed(Runnable {
+            mBinding!!.glowingLoader.startAnimation(fadeIn)
+            mBinding!!.glowingLoader.setVisibility(View.VISIBLE)
+            mBinding!!.filenameEdittext.setEnabled(false)
+            mBinding!!.filenameEdittext.setHintTextColor(getColor(R.color.shadowInvisible))
+        }, 200)
     }
 
-    public void updateFilenamePref() {
-        String input = mBinding.filenameEdittext.getText().toString();
+    private fun showFinishLayout() {
+        Log.i(TAG, "showFinishLayout()")
+        //mBinding.permissionHolder.setVisibility(View.GONE);
+        showFileFrag()
+
+        mBinding!!.ivCircle.setVisibility(View.GONE)
+        mBinding!!.glowingLoader.setVisibility(View.GONE)
+        mBinding!!.imgPreview.setAlpha(1.0f)
+        mBinding!!.btnDownload.setVisibility(View.GONE)
+        mBinding!!.btnDownload.setEnabled(false)
+        mBinding!!.btnPaste.setVisibility(View.VISIBLE)
+        mBinding!!.btnPaste.setEnabled(true)
+        mBinding!!.ivCircle.setVisibility(View.VISIBLE)
+        mBinding!!.numProgress.setVisibility(View.GONE)
+        mBinding!!.numProgress.setProgress(0)
+        mBinding!!.mainScroll.smoothScrollTo(0, mBinding!!.mainScroll.getBottom())
+    }
+
+    fun updateFilenamePref() {
+        val input = mBinding!!.filenameEdittext.getText().toString()
         if (input.isEmpty()) {
-            prefsManager.setFileName("VIDEO_LOADER_DOWNLOAD");
+            prefsManager!!.fileName = "VIDEO_LOADER_DOWNLOAD"
         } else {
-            prefsManager.setFileName(input);
+            prefsManager!!.fileName = input
         }
-
     }
 
-    public void updateEditFilenameView(String fileName) {
-        if (fileName.indexOf('.') != -1) {
-            fileName = fileName.substring(0, fileName.lastIndexOf('.'));
+    fun updateEditFilenameView(fileName: String?) {
+        var fileName = fileName
+        if (fileName?.indexOf('.') != -1) {
+            fileName = fileName?.substring(0, fileName.lastIndexOf('.'))
         }
-        mBinding.filenameEdittext.setText(fileName);
+        mBinding!!.filenameEdittext.setText(fileName)
     }
 
-    private void loadVideoInfo(String url) {
-        String titleStr = "", extStr = "", thumbStr ="";
+    private fun loadVideoInfo(url: String?) {
+        var titleStr = ""
+        var extStr = ""
+        var thumbStr = ""
 
         // run async
         //calling python function with it's object to extract audio
-        Python py = Python.getInstance();
-        PyObject pyObject = py.getModule("vidloader");
+        val py = Python.getInstance()
+        val pyObject = py.getModule("vidloader")
 
         // extract video information
-
         try {
-            PyObject title = pyObject.callAttr("extract_video_title",
-                    url,
-                    mResolution.replaceAll("\\D", ""));
-            titleStr = title.toString();
-            if (titleStr.length() > 25) {
-                titleStr = titleStr.substring(0, 25);
+            val title = pyObject.callAttr(
+                "extract_video_title",
+                url,
+                mResolution.replace("\\D".toRegex(), "")
+            )
+            titleStr = title.toString()
+            if (titleStr.length > 25) {
+                titleStr = titleStr.substring(0, 25)
             }
 
-            PyObject thumbnail = pyObject.callAttr("extract_video_thumbnail",
-                    url,
-                    mResolution.replaceAll("\\D", ""));
-            thumbStr = thumbnail.toString();
+            val thumbnail = pyObject.callAttr(
+                "extract_video_thumbnail",
+                url,
+                mResolution.replace("\\D".toRegex(), "")
+            )
+            thumbStr = thumbnail.toString()
             //PyObject ext = pyObject.callAttr("extract_video_ext", url);
             //extStr = ext.toString();
-            extStr = "mp4";
-        } catch (Exception e) {
-            Log.e(TAG, e.toString());
+            extStr = "mp4"
+        } catch (e: Exception) {
+            Log.e(TAG, e.toString())
 
-            runOnUiThread(() -> {
-                Toast.makeText(MainActivity.this, "Unsupported URL", Toast.LENGTH_SHORT).show();
-                showEmptyLayout();
-            });
+            runOnUiThread(Runnable {
+                Toast.makeText(this@MainActivity, "Unsupported URL", Toast.LENGTH_SHORT).show()
+                showEmptyLayout()
+            })
 
-            return;
+            return
         }
 
 
-        Log.i(TAG, "Extracted video info: "
-                + "filename: " + titleStr + "\n"
-                + "ext: " + extStr + "\n"
-                + "thumbnail url: " + thumbStr);
+        Log.i(
+            TAG, ("Extracted video info: "
+                    + "filename: " + titleStr + "\n"
+                    + "ext: " + extStr + "\n"
+                    + "thumbnail url: " + thumbStr)
+        )
 
-        prefsManager.setFileName(titleStr);
-        prefsManager.setThumbnailUrl(thumbStr);
-        prefsManager.setFileExt(extStr);
+        prefsManager!!.fileName = titleStr
+        prefsManager!!.thumbnailUrl = thumbStr
+        prefsManager!!.fileExt = extStr
 
-        runOnUiThread(this::showPreviewLayout);
-    }
-
-    public static void printLongLog(String l) {
-        int maxLogSize = 1000;
-        for(int i = 0; i <= l.length() / maxLogSize; i++) {
-            int start = i * maxLogSize;
-            int end = (i+1) * maxLogSize;
-            end = Math.min(end, l.length());
-            Log.i(TAG, l.substring(start, end));
-        }
+        runOnUiThread(Runnable { this.showPreviewLayout() })
     }
 
     /**
      * Respond to clicks on paste button
      * @param v clicked view
      */
-    public void onPasteClick(View v) {
+    fun onPasteClick(v: View?) {
         // clear search bar
-        mBinding.mainSearchBar.setText("");
+        mBinding!!.mainSearchBar.setText("")
 
         // paste from clipboard
-        ClipboardManager clipboardManager = (ClipboardManager) MainActivity.this.getSystemService(CLIPBOARD_SERVICE);
-        String primaryStr = "";
-        ClipData primaryClip = clipboardManager.getPrimaryClip();
+        val clipboardManager =
+            this@MainActivity.getSystemService(CLIPBOARD_SERVICE) as ClipboardManager
+        var primaryStr = ""
+        val primaryClip = clipboardManager.getPrimaryClip()
         if (primaryClip != null) {
-            primaryStr = primaryClip.getItemAt(0).getText().toString();
-            primaryStr = primaryStr.trim();
+            primaryStr = primaryClip.getItemAt(0).getText().toString()
+            primaryStr = primaryStr.trim { it <= ' ' }
 
-            mBinding.mainSearchBar.setText(primaryStr);
+            mBinding!!.mainSearchBar.setText(primaryStr)
         } else {
-            Toast.makeText(MainActivity.this, "Please copy a video link",
-                    Toast.LENGTH_LONG).show();
+            Toast.makeText(
+                this@MainActivity, "Please copy a video link",
+                Toast.LENGTH_LONG
+            ).show()
 
-            mBinding.mainSearchBar.setText(primaryStr);
+            mBinding!!.mainSearchBar.setText(primaryStr)
         }
     }
 
     /**
      * On Download button clicked
      */
-    public void onDownloadClick(View v) {
-        Log.i(TAG, ".onDownloadClicked()");
+    fun onDownloadClick(v: View?) {
+        Log.i(TAG, ".onDownloadClicked()")
 
-        showDownloadingLayout();
+        showDownloadingLayout()
 
         // start download service
-        Intent intent = new Intent(MainActivity.this, DownloadService.class);
+        val intent = Intent(this@MainActivity, DownloadService::class.java)
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            MainActivity.this.startForegroundService(intent);
+            this@MainActivity.startForegroundService(intent)
         } else {
-            MainActivity.this.startService(intent);
+            this@MainActivity.startService(intent)
         }
-        bindService(intent, dlServiceConn, Context.BIND_AUTO_CREATE);
+        bindService(intent, dlServiceConn, BIND_AUTO_CREATE)
     }
 
-    public void onEnableBackgroundClicked(View v) {
-        mBinding.permissionHolder.setVisibility(GONE);
-        prefsManager.setBackgroundEnabled("TRUE");
+    fun onEnableBackgroundClicked(v: View?) {
+        mBinding!!.permissionHolder.setVisibility(View.GONE)
+        prefsManager!!.backgroundEnabled = "TRUE"
 
-        Intent intent = new Intent(android.provider.Settings.ACTION_SETTINGS);
-        intent.setAction(Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS);
+        val intent = Intent(Settings.ACTION_SETTINGS)
+        intent.setAction(Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS)
         //intent.setAction(Settings.ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS);
-        intent.setData(Uri.parse("package:" + getPackageName()));
-        startActivity(intent);
+        intent.setData(Uri.parse("package:" + getPackageName()))
+        startActivity(intent)
     }
 
-    public void OnEnableNotifClicked(View v) {
-
-        closeBigFrag(mBinding.bigFragHolder);
-        ActivityCompat.requestPermissions(MainActivity.this,
-                new String[] {Manifest.permission.POST_NOTIFICATIONS},
-                1);
+    fun OnEnableNotifClicked(v: View?) {
+        closeBigFrag(mBinding!!.bigFragHolder)
+        ActivityCompat.requestPermissions(
+            this@MainActivity,
+            arrayOf<String>(Manifest.permission.POST_NOTIFICATIONS),
+            1
+        )
     }
 
-    public void showRateAd() {
-        Log.i(TAG, "Showing rate ad");
+    fun showRateAd() {
+        Log.i(TAG, "Showing rate ad")
 
-        final String appPackageName = this.getApplicationContext().getPackageName();
+        val appPackageName = this.getApplicationContext().getPackageName()
 
-        final Dialog dialog = new Dialog(new ContextThemeWrapper(this, R.style.DialogDrip));
-        dialog.setTitle(getString(R.string.msg_rate_dialog_title));
+        val dialog = Dialog(ContextThemeWrapper(this, R.style.DialogDrip))
+        dialog.setTitle(getString(R.string.msg_rate_dialog_title))
 
-        LinearLayout ll = new LinearLayout(MainActivity.this);
-        ll.setOrientation(LinearLayout.VERTICAL);
+        val ll = LinearLayout(this@MainActivity)
+        ll.setOrientation(LinearLayout.VERTICAL)
 
-        TextView tv = new TextView(MainActivity.this);
-        String msg = getString(R.string.msg_rate_dialog_body);
-        tv.setText(msg);
-        tv.setWidth(280);
-        tv.setPadding(4, 0, 4, 43);
-        tv.setTextAppearance(R.style.TextAppFragBody);
-        tv.setTextAlignment(View.TEXT_ALIGNMENT_CENTER);
-        ll.addView(tv);
+        val tv = TextView(this@MainActivity)
+        val msg = getString(R.string.msg_rate_dialog_body)
+        tv.setText(msg)
+        tv.setWidth(280)
+        tv.setPadding(4, 0, 4, 43)
+        tv.setTextAppearance(R.style.TextAppFragBody)
+        tv.setTextAlignment(View.TEXT_ALIGNMENT_CENTER)
+        ll.addView(tv)
 
-        LinearLayout l2 = new LinearLayout(MainActivity.this);
-        l2.setOrientation(LinearLayout.HORIZONTAL);
-        l2.setBottom(ll.getBottom());
-        l2.setForegroundGravity(Gravity.BOTTOM);
+        val l2 = LinearLayout(this@MainActivity)
+        l2.setOrientation(LinearLayout.HORIZONTAL)
+        l2.setBottom(ll.getBottom())
+        l2.setForegroundGravity(Gravity.BOTTOM)
 
-        Button b3 = new Button(new ContextThemeWrapper(MainActivity.this, R.style.ButtonDripBad));
-        b3.setText(getString(R.string.msg_rate_button2));
-        b3.setOnClickListener(v -> dialog.dismiss());
-        l2.addView(b3);
+        val b3 = Button(ContextThemeWrapper(this@MainActivity, R.style.ButtonDripBad))
+        b3.setText(getString(R.string.msg_rate_button2))
+        b3.setOnClickListener(View.OnClickListener { v: View? -> dialog.dismiss() })
+        l2.addView(b3)
 
-        Button b1 = new Button(new ContextThemeWrapper(MainActivity.this, R.style.ButtonDripGood));
-        b1.setText(getString(R.string.msg_rate_button1));
-        b1.setOnClickListener(v -> {
-            MainActivity.this.startActivity(new Intent(Intent.ACTION_VIEW, Uri.parse("market://details?id="
-                    + appPackageName)));
-            dialog.dismiss();
-        });
-        l2.addView(b1);
+        val b1 = Button(ContextThemeWrapper(this@MainActivity, R.style.ButtonDripGood))
+        b1.setText(getString(R.string.msg_rate_button1))
+        b1.setOnClickListener(View.OnClickListener { v: View? ->
+            this@MainActivity.startActivity(
+                Intent(
+                    Intent.ACTION_VIEW, Uri.parse(
+                        "market://details?id="
+                                + appPackageName
+                    )
+                )
+            )
+            dialog.dismiss()
+        })
+        l2.addView(b1)
 
-        ll.addView(l2);
-        dialog.setContentView(ll);
-        if (!MainActivity.this.isFinishing()) {
+        ll.addView(l2)
+        dialog.setContentView(ll)
+        if (!this@MainActivity.isFinishing()) {
             try {
-                dialog.show();
-            } catch (Exception e) {
-                Log.w(TAG, "caught bad token exception");
+                dialog.show()
+            } catch (e: Exception) {
+                Log.w(TAG, "caught bad token exception")
             }
         }
     }
 
-    @Override
-    public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
-        Log.i(TAG, "onItemSelected position=" + position);
-        String spinnerItem = parent.getSelectedItem().toString();
-        Log.i(TAG, "spinnerItem=" + spinnerItem);
+    override fun onItemSelected(parent: AdapterView<*>, view: View?, position: Int, id: Long) {
+        Log.i(TAG, "onItemSelected position=" + position)
+        val spinnerItem = parent.getSelectedItem().toString()
+        Log.i(TAG, "spinnerItem=" + spinnerItem)
 
-        int p = position;
+        val p = position
 
         /* check if resolution restricted
         if (position == 0 || position == 1) {
@@ -1242,61 +1236,66 @@ public class MainActivity extends AppCompatActivity implements PurchasesUpdatedL
         */
 
         // update var
-        mResolution = spinnerItem;
+        mResolution = spinnerItem
 
         // update resolution in shared prefs
-        SharedPreferences sharedPref = getSharedPreferences("ULOADER_PREFS", Context.MODE_PRIVATE);
-        SharedPreferences.Editor editor = sharedPref.edit();
-        editor.putInt("RES_POSITION", p);
-        editor.apply();
+        val sharedPref = getSharedPreferences("ULOADER_PREFS", MODE_PRIVATE)
+        val editor = sharedPref.edit()
+        editor.putInt("RES_POSITION", p)
+        editor.apply()
     }
 
-    @Override
-    public void onNothingSelected(AdapterView<?> parent) {
-
+    override fun onNothingSelected(parent: AdapterView<*>?) {
     }
 
-    private class FinishReceiver extends BroadcastReceiver {
-        private final String TAG = FinishReceiver.class.getCanonicalName();
-        @Override
-        public void onReceive(Context context, Intent intent) {
-            Log.i(TAG, "onReceive");
-            String absFilePath = intent.getStringExtra("FILEPATH");
+    inner class FinishReceiver : BroadcastReceiver() {
+        private val TAG: String = FinishReceiver::class.java.getCanonicalName()
+        override fun onReceive(context: Context?, intent: Intent) {
+            Log.i(TAG, "onReceive")
+            val absFilePath = intent.getStringExtra("FILEPATH")
 
             // end download service
             if (mDownloadService != null) {
-                mDownloadService.stopForeground(true);
-                mDownloadService.stopSelf();
+                mDownloadService!!.stopForeground(true)
+                mDownloadService!!.stopSelf()
             }
 
             // show error UI if missing filepath
             if (absFilePath == null || absFilePath.isEmpty()) {
-                runOnUiThread(() -> {
-                    Toast.makeText(MainActivity.this, "unknown error, please try again", Toast.LENGTH_LONG).show();
-                    showEmptyLayout();
-                });
-                return;
+                runOnUiThread(Runnable {
+                    Toast.makeText(
+                        this@MainActivity,
+                        "unknown error, please try again",
+                        Toast.LENGTH_LONG
+                    ).show()
+                    showEmptyLayout()
+                })
+                return
             }
 
             // scan new media
-            new MediaManager(MainActivity.this,
-                    absFilePath, MIME_MP4).scanMedia();
+            MediaManager(
+                this@MainActivity,
+                absFilePath, MediaManager.MIME_MP4
+            ).scanMedia()
 
             // count runs
-            prefsManager.incrementTotalRuns();
-            int runs = prefsManager.getTotalRuns();
+            prefsManager!!.incrementTotalRuns()
+            val runs = prefsManager!!.totalRuns
 
             // show rate dialog ?
-            if (runs%3==1) {
-                showRateAd();
+            if (runs % 3 == 1) {
+                showRateAd()
             }
 
             // update ui
-            runOnUiThread(() -> {
-                Toast.makeText(MainActivity.this, "Download finished!",
-                        Toast.LENGTH_SHORT).show();
-                showFinishLayout();
-            });
+            runOnUiThread(Runnable {
+                Toast.makeText(
+                    this@MainActivity, "Download finished!",
+                    Toast.LENGTH_SHORT
+                ).show()
+                showFinishLayout()
+            })
 
             //unregisterReceiver(this);
         }
@@ -1305,18 +1304,100 @@ public class MainActivity extends AppCompatActivity implements PurchasesUpdatedL
     /**
      * Bind client to Service
      */
-    protected ServiceConnection dlServiceConn = new ServiceConnection() {
-        @Override
-        public void onServiceConnected(ComponentName name, IBinder service) {
-            Log.i(TAG, "onServiceConnected");
-            DownloadService.LocalBinder binder = (DownloadService.LocalBinder) service;
-            mDownloadService = binder.getService();
+    protected var dlServiceConn: ServiceConnection = object : ServiceConnection {
+        override fun onServiceConnected(name: ComponentName?, service: IBinder?) {
+            Log.i(TAG, "onServiceConnected")
+            val binder = service as LocalBinder
+            mDownloadService = binder.service
         }
 
-        @Override
-        public void onServiceDisconnected(ComponentName name) {
-            Log.i(TAG, "onServiceDisconnected");
-
+        override fun onServiceDisconnected(name: ComponentName?) {
+            Log.i(TAG, "onServiceDisconnected")
         }
-    };
+    }
+
+    init {
+        activityCurrent = this
+    }
+
+    companion object {
+        private val TAG: String = MainActivity::class.java.getCanonicalName()
+        val ABS_PATH_DOCS: String = Environment.getExternalStoragePublicDirectory(
+            Environment.DIRECTORY_DOCUMENTS
+        )
+            .getAbsolutePath() + "/"
+
+        lateinit var activityCurrent: MainActivity
+        var mResolution: String = "2160p"
+
+        // billing
+        var MIsGold: Boolean = false
+        var MBillingFlowParams: BillingFlowParams? = null
+
+        // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~  PERMISSIONS  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+        var req_permissions_old: Array<String?> = arrayOf<String?>(
+            Manifest.permission.WRITE_EXTERNAL_STORAGE,
+            Manifest.permission.READ_EXTERNAL_STORAGE
+        )
+
+        @RequiresApi(api = Build.VERSION_CODES.TIRAMISU)
+        var req_permissions: Array<String?> = arrayOf<String?>(
+            Manifest.permission.READ_MEDIA_IMAGES,
+            Manifest.permission.READ_MEDIA_AUDIO,
+            Manifest.permission.READ_MEDIA_VIDEO,
+            Manifest.permission.POST_NOTIFICATIONS
+        )
+
+        val storagePermissions: Array<String?>?
+            get() {
+                val p: Array<String?>?
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                    p = req_permissions
+                } else {
+                    p = req_permissions_old
+                }
+                return p
+            }
+
+        val isInternetAvailable: Boolean
+            /**
+             * Check if device is connected to internet
+             * @return is device connected to internet?
+             */
+            get() {
+                try {
+                    val ipAddr = InetAddress.getByName("google.com")
+                    return !ipAddr.toString().isEmpty()
+                } catch (e: Exception) {
+                    return false
+                }
+            }
+
+        @JvmStatic
+        fun setProgress(progressStr: String) {
+            var progressStr = progressStr
+            Log.i(TAG, "setProgress: " + progressStr)
+            progressStr = progressStr.trim { it <= ' ' }.replace("%", "")
+            val progress = progressStr.toDouble().toInt()
+
+            // update activity ui
+            activityCurrent.runOnUiThread(Runnable {
+                activityCurrent.mBinding!!.numProgress.setVisibility(View.VISIBLE)
+                activityCurrent.mBinding!!.numProgress.setProgress(progress)
+            })
+
+            // update notification
+            activityCurrent.mDownloadService!!.setProgress(100, progress)
+        }
+
+        fun printLongLog(l: String) {
+            val maxLogSize = 1000
+            for (i in 0..l.length / maxLogSize) {
+                val start = i * maxLogSize
+                var end = (i + 1) * maxLogSize
+                end = min(end, l.length)
+                Log.i(TAG, l.substring(start, end))
+            }
+        }
+    }
 }

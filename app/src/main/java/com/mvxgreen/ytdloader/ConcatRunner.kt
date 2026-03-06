@@ -1,166 +1,164 @@
-package com.mvxgreen.ytdloader;
+package com.mvxgreen.ytdloader
 
-import android.media.MediaCodec;
-import android.media.MediaExtractor;
-import android.media.MediaFormat;
-import android.media.MediaMuxer;
-import android.util.Log;
+import android.media.MediaCodec
+import android.media.MediaExtractor
+import android.media.MediaFormat
+import android.media.MediaMuxer
+import android.util.Log
+import java.io.File
+import java.io.IOException
+import java.nio.ByteBuffer
 
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.IOException;
-import java.nio.ByteBuffer;
-
-public final class ConcatRunner {
-    static final String TAG = ConcatRunner.class.getCanonicalName();
+object ConcatRunner {
+    val TAG: String = ConcatRunner::class.java.getCanonicalName()
 
     // ... (your existing TAG_KEYS and other variables)
-
-    public static void mergeAV(String filepath, String vFilepath, String aFilepath) {
-        String msg = "MERGING:\nfilepath=" + filepath
+    fun mergeAV(filepath: String, vFilepath: String, aFilepath: String) {
+        val msg = ("MERGING:\nfilepath=" + filepath
                 + "\nvFilepath=" + vFilepath
-                + "\naFilepath=" + aFilepath;
-        Log.i(TAG, msg);
+                + "\naFilepath=" + aFilepath)
+        Log.i(TAG, msg)
 
         try {
-            mergeFiles(vFilepath, aFilepath, filepath);
-        } catch (IOException e) {
-            Log.e(TAG, "Error merging files: " + e.getMessage());
+            mergeFiles(vFilepath, aFilepath, filepath)
+        } catch (e: IOException) {
+            Log.e(TAG, "Error merging files: " + e.message)
         }
     }
 
     /**
      * Merges a video file and an audio file into a single output MP4 file.
-     *
+     * 
      * @param videoFilePath Path to the input video file (e.g., .mp4).
      * @param audioFilePath Path to the input audio file (e.g., .m4a).
      * @param outputFilePath Path for the merged output MP4 file.
      * @throws IOException If an error occurs during the merging process.
      */
-    public static void mergeFiles(String videoFilePath, String audioFilePath, String outputFilePath) throws IOException {
-        MediaMuxer muxer = null;
-        MediaExtractor videoExtractor = null;
-        MediaExtractor audioExtractor = null;
+    @Throws(IOException::class)
+    fun mergeFiles(videoFilePath: String, audioFilePath: String, outputFilePath: String) {
+        var muxer: MediaMuxer? = null
+        var videoExtractor: MediaExtractor? = null
+        var audioExtractor: MediaExtractor? = null
 
         try {
             // Setup output file
-            File outputFile = new File(outputFilePath);
+            val outputFile = File(outputFilePath)
             if (outputFile.exists()) {
-                outputFile.delete();
+                outputFile.delete()
             }
 
-            muxer = new MediaMuxer(outputFilePath, MediaMuxer.OutputFormat.MUXER_OUTPUT_MPEG_4);
+            muxer = MediaMuxer(outputFilePath, MediaMuxer.OutputFormat.MUXER_OUTPUT_MPEG_4)
 
             // --- Video Track ---
-            videoExtractor = new MediaExtractor();
+            videoExtractor = MediaExtractor()
             try {
-                videoExtractor.setDataSource(videoFilePath);
-            } catch (Exception e) {
-                Log.e(TAG, "Error setting videoExtractor data source: " + e.getMessage());
-                e.printStackTrace();
+                videoExtractor.setDataSource(videoFilePath)
+            } catch (e: Exception) {
+                Log.e(TAG, "Error setting videoExtractor data source: " + e.message)
+                e.printStackTrace()
             }
-            int videoTrackIndex = -1;
-            MediaFormat videoFormat = null;
-            for (int i = 0; i < videoExtractor.getTrackCount(); i++) {
-                MediaFormat format = videoExtractor.getTrackFormat(i);
-                String mime = format.getString(MediaFormat.KEY_MIME);
+            var videoTrackIndex = -1
+            var videoFormat: MediaFormat? = null
+            for (i in 0..<videoExtractor.getTrackCount()) {
+                val format = videoExtractor.getTrackFormat(i)
+                val mime = format.getString(MediaFormat.KEY_MIME)
                 if (mime != null && mime.startsWith("video/")) {
-                    videoExtractor.selectTrack(i);
-                    videoFormat = format;
+                    videoExtractor.selectTrack(i)
+                    videoFormat = format
                     //videoFormat.setString(MediaFormat.KEY_MIME, "video/mp4v");
-                    videoTrackIndex = muxer.addTrack(videoFormat);
-                    break;
+                    videoTrackIndex = muxer.addTrack(videoFormat)
+                    break
                 }
             }
             if (videoTrackIndex == -1) {
-                throw new IOException("No video track found in " + videoFilePath);
+                throw IOException("No video track found in " + videoFilePath)
             }
 
             // --- Audio Track ---
-            audioExtractor = new MediaExtractor();
+            audioExtractor = MediaExtractor()
             try {
-                audioExtractor.setDataSource(audioFilePath);
-            } catch (Exception e) {
-                Log.e(TAG, "Error setting audioExtractor data source: " + e.getMessage());
-                e.printStackTrace();
+                audioExtractor.setDataSource(audioFilePath)
+            } catch (e: Exception) {
+                Log.e(TAG, "Error setting audioExtractor data source: " + e.message)
+                e.printStackTrace()
             }
 
-            int audioTrackIndex = -1;
-            MediaFormat audioFormat = null;
-            for (int i = 0; i < audioExtractor.getTrackCount(); i++) {
-                MediaFormat format = audioExtractor.getTrackFormat(i);
-                String mime = format.getString(MediaFormat.KEY_MIME);
+            var audioTrackIndex = -1
+            var audioFormat: MediaFormat? = null
+            for (i in 0..<audioExtractor.getTrackCount()) {
+                val format = audioExtractor.getTrackFormat(i)
+                val mime = format.getString(MediaFormat.KEY_MIME)
                 if (mime != null && mime.startsWith("audio/")) {
-                    audioExtractor.selectTrack(i);
-                    audioFormat = format;
-                    audioTrackIndex = muxer.addTrack(audioFormat);
-                    break;
+                    audioExtractor.selectTrack(i)
+                    audioFormat = format
+                    audioTrackIndex = muxer.addTrack(audioFormat)
+                    break
                 }
             }
             if (audioTrackIndex == -1) {
-                throw new IOException("No audio track found in " + audioFilePath);
+                throw IOException("No audio track found in " + audioFilePath)
             }
 
-            muxer.start();
+            muxer.start()
 
             // --- Copy Video Samples ---
-            ByteBuffer videoBuffer = ByteBuffer.allocate(1024 * 1024); // 1MB buffer
-            MediaCodec.BufferInfo videoBufferInfo = new MediaCodec.BufferInfo();
-            videoExtractor.seekTo(0, MediaExtractor.SEEK_TO_PREVIOUS_SYNC);
+            val videoBuffer = ByteBuffer.allocate(1024 * 1024) // 1MB buffer
+            val videoBufferInfo = MediaCodec.BufferInfo()
+            videoExtractor.seekTo(0, MediaExtractor.SEEK_TO_PREVIOUS_SYNC)
 
             while (true) {
-                int sampleSize = videoExtractor.readSampleData(videoBuffer, 0);
+                val sampleSize = videoExtractor.readSampleData(videoBuffer, 0)
                 if (sampleSize < 0) {
-                    break;
+                    break
                 }
-                videoBufferInfo.offset = 0;
-                videoBufferInfo.size = sampleSize;
-                videoBufferInfo.presentationTimeUs = videoExtractor.getSampleTime();
-                videoBufferInfo.flags = MediaCodec.BUFFER_FLAG_KEY_FRAME; // Use sample flags directly
+                videoBufferInfo.offset = 0
+                videoBufferInfo.size = sampleSize
+                videoBufferInfo.presentationTimeUs = videoExtractor.getSampleTime()
+                videoBufferInfo.flags =
+                    MediaCodec.BUFFER_FLAG_KEY_FRAME // Use sample flags directly
 
-                muxer.writeSampleData(videoTrackIndex, videoBuffer, videoBufferInfo);
-                videoExtractor.advance();
+                muxer.writeSampleData(videoTrackIndex, videoBuffer, videoBufferInfo)
+                videoExtractor.advance()
             }
-            Log.d(TAG, "Finished writing video track.");
+            Log.d(TAG, "Finished writing video track.")
 
             // --- Copy Audio Samples ---
-            ByteBuffer audioBuffer = ByteBuffer.allocate(1024 * 1024); // 1MB buffer
-            MediaCodec.BufferInfo audioBufferInfo = new MediaCodec.BufferInfo();
-            audioExtractor.seekTo(0, MediaExtractor.SEEK_TO_PREVIOUS_SYNC);
+            val audioBuffer = ByteBuffer.allocate(1024 * 1024) // 1MB buffer
+            val audioBufferInfo = MediaCodec.BufferInfo()
+            audioExtractor.seekTo(0, MediaExtractor.SEEK_TO_PREVIOUS_SYNC)
 
             while (true) {
-                int sampleSize = audioExtractor.readSampleData(audioBuffer, 0);
+                val sampleSize = audioExtractor.readSampleData(audioBuffer, 0)
                 if (sampleSize < 0) {
-                    break;
+                    break
                 }
-                audioBufferInfo.offset = 0;
-                audioBufferInfo.size = sampleSize;
-                audioBufferInfo.presentationTimeUs = audioExtractor.getSampleTime();
-                audioBufferInfo.flags = MediaCodec.BUFFER_FLAG_KEY_FRAME; // Use sample flags directly
+                audioBufferInfo.offset = 0
+                audioBufferInfo.size = sampleSize
+                audioBufferInfo.presentationTimeUs = audioExtractor.getSampleTime()
+                audioBufferInfo.flags =
+                    MediaCodec.BUFFER_FLAG_KEY_FRAME // Use sample flags directly
 
-                muxer.writeSampleData(audioTrackIndex, audioBuffer, audioBufferInfo);
-                audioExtractor.advance();
+                muxer.writeSampleData(audioTrackIndex, audioBuffer, audioBufferInfo)
+                audioExtractor.advance()
             }
-            Log.d(TAG, "Finished writing audio track.");
-
-
+            Log.d(TAG, "Finished writing audio track.")
         } finally {
             if (muxer != null) {
                 try {
-                    muxer.stop();
-                } catch (IllegalStateException e) {
-                    Log.e(TAG, "IllegalStateException when stopping muxer: " + e.getMessage());
+                    muxer.stop()
+                } catch (e: IllegalStateException) {
+                    Log.e(TAG, "IllegalStateException when stopping muxer: " + e.message)
                 }
-                muxer.release();
-                Log.d(TAG, "Muxer released.");
+                muxer.release()
+                Log.d(TAG, "Muxer released.")
             }
             if (videoExtractor != null) {
-                videoExtractor.release();
-                Log.d(TAG, "Video extractor released.");
+                videoExtractor.release()
+                Log.d(TAG, "Video extractor released.")
             }
             if (audioExtractor != null) {
-                audioExtractor.release();
-                Log.d(TAG, "Audio extractor released.");
+                audioExtractor.release()
+                Log.d(TAG, "Audio extractor released.")
             }
         }
     }
@@ -169,13 +167,12 @@ public final class ConcatRunner {
     /**
      * Delete temp files
      */
-    public static boolean deleteTempFiles(String vfp, String afp) {
-        Log.i(TAG, "deleteTempFiles: " + vfp + ", " + afp);
-        boolean audioDeleted = false;
-        File audioFile = new File(afp);
-        audioDeleted = audioFile.delete();
+    fun deleteTempFiles(vfp: String?, afp: String): Boolean {
+        Log.i(TAG, "deleteTempFiles: " + vfp + ", " + afp)
+        var audioDeleted = false
+        val audioFile = File(afp)
+        audioDeleted = audioFile.delete()
 
-        return audioDeleted;
+        return audioDeleted
     }
-
 }
