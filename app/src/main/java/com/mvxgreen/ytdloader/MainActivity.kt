@@ -543,8 +543,15 @@ class MainActivity : AppCompatActivity(), PurchasesUpdatedListener, AdapterView.
                 }
             }
 
-            override fun afterTextChanged(s: Editable) {}
+            override fun afterTextChanged(s: Editable) {
+                mBinding.btnClear.visibility = if (s.isNullOrEmpty()) View.INVISIBLE else View.VISIBLE
+            }
         })
+
+        mBinding.btnClear.setOnClickListener {
+            mBinding.etMainInput.setText("")
+            showEmptyLayout()
+        }
 
         val spinner = findViewById<Spinner>(R.id.res_spinner)
         val adapter = ArrayAdapter.createFromResource(

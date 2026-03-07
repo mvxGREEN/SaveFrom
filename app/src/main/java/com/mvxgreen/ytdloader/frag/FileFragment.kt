@@ -85,8 +85,4 @@ class FileFragment : Fragment() {
         name.setText(this.fileName)
         //subtitle.setText(this.fileSubtitle)
     }
-
-    companion object {
-        private val TAG: String = FileFragment::class.java.getCanonicalName()
-    }
 }
