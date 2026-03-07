@@ -1016,11 +1016,13 @@ class MainActivity : AppCompatActivity(), PurchasesUpdatedListener, AdapterView.
             if(MIsGold) {
                 Log.i("MainActivity", "is gold, skipping dialog")
             } else {
-                if (currentCount % 4 == 1) {
+                val cycleCount = currentCount % 4
+                Log.i(TAG, "cycle count: $cycleCount")
+                if (cycleCount == 1) {
                     showUpgradeDialog()
-                } else if (currentCount % 4 == 2) {
+                } else if (cycleCount == 2) {
                     showVideDialog()
-                } else if (currentCount % 4 == 3) {
+                } else if (cycleCount == 3) {
                     showRateDialog()
                 } else {
                     showCutterDialog()
@@ -1154,7 +1156,6 @@ class MainActivity : AppCompatActivity(), PurchasesUpdatedListener, AdapterView.
                     MediaManager(this@MainActivity, absFilePath, MIME_MP4).scanMedia()
 
                     runOnUiThread {
-                        incrementSuccessfulRuns()
                         Toast.makeText(this@MainActivity, "Download finished!", Toast.LENGTH_SHORT).show()
                         updateUI(UIState.FINISHED)
                     }
