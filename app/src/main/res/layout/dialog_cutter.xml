@@ -92,6 +92,7 @@
                 android:layout_height="wrap_content"
                 android:backgroundTint="#097969"
                 android:text="Get It"
+                android:textStyle="bold"
                 android:fontFamily="@font/gotu_regular"
                 android:textColor="@android:color/white" />
         </LinearLayout>

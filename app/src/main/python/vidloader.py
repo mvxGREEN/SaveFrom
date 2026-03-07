@@ -91,7 +91,7 @@ def extract_audio_ext(video_url):
         info_dict = ydl.extract_info(video_url, download=False)
         return info_dict['ext']
 
-def extract_video_thumbnail(video_url, resolution):
+def extract_video_title_thumbnail(video_url, resolution):
     ydl_opts = {
         'format': "best[height<=" + resolution + "]/bestvideo[height<=" + resolution + "]",
         "cachedir": False,
@@ -99,7 +99,10 @@ def extract_video_thumbnail(video_url, resolution):
     }
     with yt_dlp.YoutubeDL(ydl_opts) as ydl:
         info_dict = ydl.extract_info(video_url, download=False)
-        return info_dict['thumbnail']
+        filename_id = f"{random.randint(0,9)}{random.randint(0,9)}{random.randint(0,9)}{random.randint(0,9)}_"
+        filename = filename_id + sanitize_filename(info_dict['title'][0:23])
+        res = filename + '|||' + info_dict['thumbnail']
+        return res
 
 def sanitize_filename(filename):
     """Removes or replaces sensitive characters from a filename.

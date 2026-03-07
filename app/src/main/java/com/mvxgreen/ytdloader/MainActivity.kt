@@ -8,8 +8,10 @@ import android.content.pm.PackageManager
 import android.graphics.Color
 import android.graphics.drawable.Animatable
 import android.graphics.drawable.ColorDrawable
+import android.media.MediaScannerConnection
 import android.net.Uri
 import android.os.*
+import android.provider.MediaStore
 import android.provider.Settings
 import android.text.Editable
 import android.text.TextWatcher
@@ -20,6 +22,7 @@ import android.view.animation.Animation
 import android.view.animation.AnimationUtils
 import android.view.inputmethod.InputMethodManager
 import android.widget.*
+import androidx.activity.result.contract.ActivityResultContracts
 //import androidx.activity.EdgeToEdge
 import androidx.annotation.RequiresApi
 import androidx.appcompat.app.AppCompatActivity
@@ -53,7 +56,12 @@ import com.mvxgreen.ytdloader.databinding.DialogCutterBinding
 import com.mvxgreen.ytdloader.databinding.DialogRateBinding
 import com.mvxgreen.ytdloader.databinding.DialogUpgradeBinding
 import com.mvxgreen.ytdloader.databinding.DialogVideBinding
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import java.io.File
+import kotlin.math.abs
 
 class MainActivity : AppCompatActivity(), PurchasesUpdatedListener, AdapterView.OnItemSelectedListener {
     private lateinit var firebaseAnalytics: FirebaseAnalytics
@@ -69,6 +77,33 @@ class MainActivity : AppCompatActivity(), PurchasesUpdatedListener, AdapterView.
     private lateinit var androidPlatform: AndroidPlatform
 
     private var isBackgroundEnabled = false
+    private val mediaPermissions = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+        arrayOf(Manifest.permission.READ_MEDIA_VIDEO) // Removed READ_MEDIA_AUDIO
+    } else {
+        arrayOf(Manifest.permission.READ_EXTERNAL_STORAGE, Manifest.permission.WRITE_EXTERNAL_STORAGE)
+    }
+
+    private fun checkPermissions() {
+        val needed = mediaPermissions.filter { ContextCompat.checkSelfPermission(this, it) != PackageManager.PERMISSION_GRANTED }
+        if (!needed.isEmpty()) {
+            Log.w(TAG, "missing permissions: $needed")
+            requestStoragePermissionLauncher.launch(needed.toTypedArray())
+        } else {
+            prepareFileDirs()
+        }
+    }
+
+    private val requestStoragePermissionLauncher =
+        registerForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) { permissions ->
+            val allGranted = permissions.entries.all { it.value }
+            if (allGranted) {
+                Log.i(TAG, "All media permissions granted")
+                prepareFileDirs() // Ensure directories exist once permissions are granted
+            } else {
+                Log.w(TAG, "Some media permissions were denied")
+                Toast.makeText(this, "Storage permission is required to save downloads.", Toast.LENGTH_LONG).show()
+            }
+        }
 
     // admob
     private lateinit var consentInformation: ConsentInformation
@@ -80,8 +115,11 @@ class MainActivity : AppCompatActivity(), PurchasesUpdatedListener, AdapterView.
         private val TAG = MainActivity::class.java.canonicalName
 
         @JvmField
-        val ABS_PATH_DOCS: String = Environment.getExternalStoragePublicDirectory(
+        val ABS_PATH_TEMP: String = Environment.getExternalStoragePublicDirectory(
             Environment.DIRECTORY_DOCUMENTS
+        ).absolutePath + "/SaveFrom/"
+        val ABS_PATH_MOVIES: String = Environment.getExternalStoragePublicDirectory(
+            Environment.DIRECTORY_MOVIES
         ).absolutePath + "/SaveFrom/"
 
         @SuppressLint("StaticFieldLeak")
@@ -197,6 +235,8 @@ class MainActivity : AppCompatActivity(), PurchasesUpdatedListener, AdapterView.
 
         // init admob
         loadAdmob()
+
+        checkPermissions()
     }
 
     override fun onResume() {
@@ -218,9 +258,13 @@ class MainActivity : AppCompatActivity(), PurchasesUpdatedListener, AdapterView.
     }
 
     fun prepareFileDirs() {
-        val tempDir = File(ABS_PATH_DOCS)
+        val tempDir = File(ABS_PATH_TEMP)
         if (!tempDir.exists()) {
             tempDir.mkdirs()
+        }
+        val moviesDir = File(ABS_PATH_MOVIES)
+        if (!moviesDir.exists()) {
+            moviesDir.mkdirs()
         }
     }
 
@@ -668,7 +712,7 @@ class MainActivity : AppCompatActivity(), PurchasesUpdatedListener, AdapterView.
     fun showFileFrag() {
         val fileName = prefsManager.fileName
         val fileExt = prefsManager.fileExt
-        val absPath = "$ABS_PATH_DOCS$fileName.$fileExt"
+        val absPath = "$ABS_PATH_MOVIES$fileName.$fileExt"
 
         runOnUiThread {
             val extras = Bundle().apply {
@@ -865,14 +909,17 @@ class MainActivity : AppCompatActivity(), PurchasesUpdatedListener, AdapterView.
         val pyObject = py.getModule("vidloader")
 
         try {
-            val title = pyObject.callAttr("extract_video_title", url, mResolution.replace("\\D".toRegex(), ""))
-            titleStr = title.toString()
+            val res = pyObject.callAttr("extract_video_title_thumbnail", url, mResolution.replace("\\D".toRegex(), "")).toString()
+            titleStr = res.substringBeforeLast("|||")
+
+            // trim title to 25 characters
             if (titleStr.length > 25) {
                 titleStr = titleStr.substring(0, 25)
             }
 
-            val thumbnail = pyObject.callAttr("extract_video_thumbnail", url, mResolution.replace("\\D".toRegex(), ""))
-            thumbStr = thumbnail.toString()
+            thumbStr = res.substringAfter("|||")
+            thumbStr = thumbStr.replace("|", "")
+
             extStr = "mp4"
         } catch (e: Exception) {
             Log.e(TAG, e.toString())
@@ -1053,6 +1100,8 @@ class MainActivity : AppCompatActivity(), PurchasesUpdatedListener, AdapterView.
         override fun onReceive(context: Context, intent: Intent) {
             Log.i(TAG, "onReceive")
             val absFilePath = intent.getStringExtra("FILEPATH")
+            var savedFilePath = absFilePath
+            var savedUriStr = ""
 
             mDownloadService?.let {
                 it.stopForeground(true)
@@ -1065,16 +1114,89 @@ class MainActivity : AppCompatActivity(), PurchasesUpdatedListener, AdapterView.
                     showEmptyLayout()
                 }
                 return
+            } else {
+                CoroutineScope(Dispatchers.IO).launch {
+                    try {
+                        savedUriStr = moveFileToMovies(absFilePath)
+                        // TODO use for share button
+                    } catch (e: Exception) {
+                        Log.e(TAG, "Move failed: ${e.message}")
+                    }
+
+                    deleteTempFiles()
+
+                    //var moviesFilepath = absFilePath
+                    if (absFilePath.contains(ABS_PATH_TEMP))
+                        savedFilePath = absFilePath.replace(ABS_PATH_TEMP, ABS_PATH_MOVIES)
+                    MediaManager(this@MainActivity, absFilePath, MIME_MP4).scanMedia()
+
+                    runOnUiThread {
+                        incrementSuccessfulRuns()
+                        Toast.makeText(this@MainActivity, "Download finished!", Toast.LENGTH_SHORT).show()
+                        showFinishLayout()
+                    }
+                }
             }
+        }
+    }
 
-            MediaManager(this@MainActivity, absFilePath, MIME_MP4).scanMedia()
+    suspend fun moveFileToMovies(privatePath: String): String = withContext(Dispatchers.IO) {
+        val sourceFile = File(privatePath)
+        if (!sourceFile.exists()) return@withContext ""
 
-            incrementSuccessfulRuns()
+        val displayName = privatePath.substringAfterLast("/")
+            .replace("/", "")
+        val resolver = activityCurrent!!.contentResolver
 
-            runOnUiThread {
-                Toast.makeText(this@MainActivity, "Download finished!", Toast.LENGTH_SHORT).show()
-                showFinishLayout()
+        Log.i(TAG, "moveFileToMovies: $displayName")
+
+        val contentValues = ContentValues().apply {
+            put(MediaStore.Video.Media.DISPLAY_NAME, displayName)
+            put(MediaStore.Video.Media.MIME_TYPE, "video/mp4")
+            put(MediaStore.Video.Media.TITLE, displayName)
+
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                put(MediaStore.Video.Media.RELATIVE_PATH, "${Environment.DIRECTORY_MOVIES}/SaveFrom")
+                put(MediaStore.Video.Media.IS_PENDING, 1)
             }
+        }
+
+        val collection = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            MediaStore.Video.Media.getContentUri(MediaStore.VOLUME_EXTERNAL_PRIMARY)
+        } else {
+            MediaStore.Video.Media.EXTERNAL_CONTENT_URI
+        }
+
+        try {
+            val uri = resolver.insert(collection, contentValues) ?: return@withContext ""
+            resolver.openOutputStream(uri)?.use { output ->
+                sourceFile.inputStream().use { input -> input.copyTo(output) }
+            }
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                contentValues.clear()
+                contentValues.put(MediaStore.Video.Media.IS_PENDING, 0)
+                resolver.update(uri, contentValues, null, null)
+            } else {
+                MediaScannerConnection.scanFile(activityCurrent, arrayOf(sourceFile.absolutePath), null, null)
+            }
+            return@withContext uri.toString()
+        } catch (e: Exception) {
+            Log.e(TAG, "Export failed: ${e.message}")
+            logEvent("sf_export_exception", e.message ?: "error exporting", privatePath)
+            return@withContext ""
+        }
+    }
+
+    suspend fun deleteTempFiles() = withContext(Dispatchers.IO) {
+        try {
+            val tempDir = File(ABS_PATH_TEMP)
+            if (tempDir.exists()) {
+                tempDir.deleteRecursively()
+            }
+            tempDir.mkdirs()
+            Log.d(TAG, "Temp files cleared.")
+        } catch (e: Exception) {
+            Log.e(TAG, "Cleanup failed: ${e.message}")
         }
     }
 
