@@ -20,7 +20,7 @@ import androidx.core.app.ServiceCompat
 import com.chaquo.python.Python
 import com.chaquo.python.android.AndroidPlatform
 import com.google.firebase.analytics.FirebaseAnalytics
-import com.mvxgreen.ytdloader.MainActivity.Companion.ABS_PATH_MOVIES
+import com.mvxgreen.ytdloader.MainActivity.Companion.ABS_PATH_DOCS
 import com.mvxgreen.ytdloader.manager.PrefsManager
 import java.io.File
 import java.io.IOException
@@ -128,7 +128,7 @@ class DownloadService : Service() {
                     "dl_video_without_audio",
                     MainActivity.activityCurrent,
                     videoUrl,
-                    ABS_PATH_MOVIES,
+                    ABS_PATH_DOCS,
                     prefsManager.fileName,
                     resolution
                 )
@@ -154,7 +154,7 @@ class DownloadService : Service() {
             Log.i(TAG, "OnPostExecute")
 
             // build filepaths
-            var absFilepath = ABS_PATH_MOVIES + prefsManager.fileName
+            var absFilepath = ABS_PATH_DOCS + prefsManager.fileName
             absFilepath += vidExt
 
             // scan video file (no audio)

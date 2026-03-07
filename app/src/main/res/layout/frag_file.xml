@@ -42,6 +42,7 @@
             android:layout_height="wrap_content"
             android:textAppearance="@style/TextAppTitle"
             android:textColor="@color/shadowInverseDark"
+            android:textSize="16sp"
             android:maxLines="1"
             android:ellipsize="end"/>
 
@@ -50,18 +51,19 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:textAppearance="@style/TextAppSubtitle"
-            android:textColor="@color/shadowInverse"/>
+            android:textColor="@color/shadowInverse"
+            android:visibility="gone"/>
     </LinearLayout>
 
     <ImageView
         android:id="@+id/frag_file_open"
-        android:layout_width="72dp"
-        android:layout_height="72dp"
+        android:layout_width="36dp"
+        android:layout_height="36dp"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintTop_toTopOf="parent"
         app:layout_constraintBottom_toBottomOf="parent"
-        android:layout_margin="@dimen/spacing_med"
-        android:src="@drawable/open_file_icon"
-        app:tint="@color/shadowInverseDark"/>
+        android:layout_margin="16dp"
+        android:src="@drawable/ic_share_24"
+        app:tint="@color/shadowInverseDarker"/>
 
 </androidx.constraintlayout.widget.ConstraintLayout>

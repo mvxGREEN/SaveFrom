@@ -23,7 +23,7 @@ import java.io.File
  * 1) Clicked menu item id
  */
 class FileFragment : Fragment() {
-    var viewFileIntent: Intent? = null
+    var shareIntent: Intent? = null
     var fileName: String? = null
     var fileSubtitle: String? = null
     var mediaPlayer: MediaPlayer? = null
@@ -51,10 +51,10 @@ class FileFragment : Fragment() {
         fileName = absFilePath.substring(absFilePath.lastIndexOf('/') + 1)
         fileSubtitle = absFilePath
 
-        viewFileIntent = Intent()
-        viewFileIntent!!.setAction(Intent.ACTION_VIEW)
-        viewFileIntent!!.setDataAndType(uri, MIME_MP4)
-        viewFileIntent!!.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+        shareIntent = Intent(Intent.ACTION_SEND)
+        shareIntent!!.putExtra(Intent.EXTRA_STREAM, uri)
+        shareIntent!!.setDataAndType(uri, MIME_MP4)
+        shareIntent!!.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
 
         // Check menu item id; inflate proper fragment
         val rootView = inflater.inflate(R.layout.frag_file, container, false)
@@ -65,7 +65,7 @@ class FileFragment : Fragment() {
 
         rootView.setOnClickListener(object : View.OnClickListener {
             override fun onClick(view: View?) {
-                startActivity(viewFileIntent)
+                startActivity(Intent.createChooser(shareIntent, "Share Video"))
             }
         })
 
@@ -78,12 +78,12 @@ class FileFragment : Fragment() {
      */
     private fun fillFileLayout(root: View) {
         val name = root.findViewById<TextView>(R.id.item_file_name)
-        val subtitle = root.findViewById<TextView>(R.id.item_file_subtitle)
+        //val subtitle = root.findViewById<TextView>(R.id.item_file_subtitle)
 
 
         //FloatingActionButton playPause = root.findViewById(R.id.player_play_pause);
         name.setText(this.fileName)
-        subtitle.setText(this.fileSubtitle)
+        //subtitle.setText(this.fileSubtitle)
     }
 
     companion object {

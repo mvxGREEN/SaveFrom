@@ -46,6 +46,7 @@ import com.squareup.picasso.Picasso
 import java.net.InetAddress
 import java.time.LocalDate
 import androidx.core.net.toUri
+import java.io.File
 
 class MainActivity : AppCompatActivity(), PurchasesUpdatedListener, AdapterView.OnItemSelectedListener {
 
@@ -72,9 +73,9 @@ class MainActivity : AppCompatActivity(), PurchasesUpdatedListener, AdapterView.
         private val TAG = MainActivity::class.java.canonicalName
 
         @JvmField
-        val ABS_PATH_MOVIES: String = Environment.getExternalStoragePublicDirectory(
-            Environment.DIRECTORY_MOVIES
-        ).absolutePath + "/"
+        val ABS_PATH_DOCS: String = Environment.getExternalStoragePublicDirectory(
+            Environment.DIRECTORY_DOCUMENTS
+        ).absolutePath + "/SaveFrom/"
 
         @SuppressLint("StaticFieldLeak")
         @JvmField
@@ -201,6 +202,13 @@ class MainActivity : AppCompatActivity(), PurchasesUpdatedListener, AdapterView.
             unregisterReceiver(mFinishReceiver)
         } catch (ignored: Exception) {}
         super.onDestroy()
+    }
+
+    fun prepareFileDirs() {
+        val tempDir = File(ABS_PATH_DOCS)
+        if (!tempDir.exists()) {
+            tempDir.mkdirs()
+        }
     }
 
     fun onYearlyClick(v: View?) {
@@ -640,7 +648,7 @@ class MainActivity : AppCompatActivity(), PurchasesUpdatedListener, AdapterView.
     fun showFileFrag() {
         val fileName = prefsManager.fileName
         val fileExt = prefsManager.fileExt
-        val absPath = "$ABS_PATH_MOVIES$fileName.$fileExt"
+        val absPath = "$ABS_PATH_DOCS$fileName.$fileExt"
 
         runOnUiThread {
             val extras = Bundle().apply {
