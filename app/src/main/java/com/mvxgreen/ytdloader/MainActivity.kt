@@ -2,10 +2,12 @@ package com.mvxgreen.ytdloader
 
 import android.Manifest
 import android.annotation.SuppressLint
-import android.app.Dialog
+import android.app.AlertDialog
 import android.content.*
 import android.content.pm.PackageManager
+import android.graphics.Color
 import android.graphics.drawable.Animatable
+import android.graphics.drawable.ColorDrawable
 import android.net.Uri
 import android.os.*
 import android.provider.Settings
@@ -46,10 +48,15 @@ import com.squareup.picasso.Picasso
 import java.net.InetAddress
 import java.time.LocalDate
 import androidx.core.net.toUri
+import com.google.firebase.FirebaseApp
+import com.mvxgreen.ytdloader.databinding.DialogCutterBinding
+import com.mvxgreen.ytdloader.databinding.DialogRateBinding
+import com.mvxgreen.ytdloader.databinding.DialogUpgradeBinding
+import com.mvxgreen.ytdloader.databinding.DialogVideBinding
 import java.io.File
 
 class MainActivity : AppCompatActivity(), PurchasesUpdatedListener, AdapterView.OnItemSelectedListener {
-
+    private lateinit var firebaseAnalytics: FirebaseAnalytics
     private var mDownloadService: DownloadService? = null
     lateinit var mBinding: ActivityMainBinding
     private lateinit var fadeIn: Animation
@@ -156,6 +163,8 @@ class MainActivity : AppCompatActivity(), PurchasesUpdatedListener, AdapterView.
         super.onCreate(savedInstanceState)
 
         //EdgeToEdge.enable(this)
+        FirebaseApp.initializeApp(this)
+        firebaseAnalytics = FirebaseAnalytics.getInstance(this)
 
         mBinding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(mBinding.root)
@@ -193,6 +202,10 @@ class MainActivity : AppCompatActivity(), PurchasesUpdatedListener, AdapterView.
     override fun onResume() {
         if (billingClient != null) {
             checkSubscriptionStatus()
+        }
+        if (!Python.isStarted()) {
+            androidPlatform = AndroidPlatform(this)
+            Python.start(androidPlatform)
         }
         super.onResume()
     }
@@ -599,7 +612,7 @@ class MainActivity : AppCompatActivity(), PurchasesUpdatedListener, AdapterView.
     }
 
     fun onUpgradeClick(menuItem: MenuItem) {
-        showBigFrag(menuItem)
+        showUpgradeDialog()
     }
 
     fun onAboutClick(menuItem: MenuItem) {
@@ -927,57 +940,98 @@ class MainActivity : AppCompatActivity(), PurchasesUpdatedListener, AdapterView.
         )
     }
 
-    fun showRateAd() {
-        Log.i(TAG, "Showing rate ad")
-
-        val appPackageName = this.applicationContext.packageName
-        val dialog = Dialog(ContextThemeWrapper(this, R.style.DialogDrip))
-        dialog.setTitle(getString(R.string.msg_rate_dialog_title))
-
-        val ll = LinearLayout(this@MainActivity).apply {
-            orientation = LinearLayout.VERTICAL
-        }
-
-        val tv = TextView(this@MainActivity).apply {
-            text = getString(R.string.msg_rate_dialog_body)
-            width = 280
-            setPadding(4, 0, 4, 43)
-            setTextAppearance(R.style.TextAppFragBody)
-            textAlignment = View.TEXT_ALIGNMENT_CENTER
-        }
-        ll.addView(tv)
-
-        val l2 = LinearLayout(this@MainActivity).apply {
-            orientation = LinearLayout.HORIZONTAL
-            bottom = ll.bottom
-            foregroundGravity = Gravity.BOTTOM
-        }
-
-        val b3 = Button(ContextThemeWrapper(this@MainActivity, R.style.ButtonDripBad)).apply {
-            text = getString(R.string.msg_rate_button2)
-            setOnClickListener { dialog.dismiss() }
-        }
-        l2.addView(b3)
-
-        val b1 = Button(ContextThemeWrapper(this@MainActivity, R.style.ButtonDripGood)).apply {
-            text = getString(R.string.msg_rate_button1)
-            setOnClickListener {
-                startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("market://details?id=$appPackageName")))
-                dialog.dismiss()
+    private fun incrementSuccessfulRuns() {
+        Log.i(TAG, "incrementSuccessfulRuns()")
+        val prefs = getSharedPreferences("green.mobileapps.savefrom.prefs", Context.MODE_PRIVATE)
+        val currentCount = prefs.getInt("SUCCESS_RUNS", 0) + 1
+        prefs.edit().putInt("SUCCESS_RUNS", currentCount).apply()
+        Log.i(TAG, "successful runs count: $currentCount")
+        if (currentCount > 0) {
+            Log.i(TAG, "showing a dialog: $currentCount")
+            // skip if gold
+            if(MIsGold) {
+                Log.i("MainActivity", "is gold, skipping dialog")
+            } else {
+                if (currentCount % 4 == 1) {
+                    showUpgradeDialog()
+                } else if (currentCount % 4 == 2) {
+                    showVideDialog()
+                } else if (currentCount % 4 == 3) {
+                    showRateDialog()
+                } else {
+                    showCutterDialog()
+                }
             }
         }
-        l2.addView(b1)
+    }
 
-        ll.addView(l2)
-        dialog.setContentView(ll)
-
-        if (!this@MainActivity.isFinishing) {
-            try {
-                dialog.show()
-            } catch (e: Exception) {
-                Log.w(TAG, "caught bad token exception")
-            }
+    private fun showVideDialog() {
+        logEvent("sf_vide_dialog", "", "")
+        val musiBinding = DialogVideBinding.inflate(layoutInflater)
+        val dialog = AlertDialog.Builder(this).setView(musiBinding.root).create()
+        dialog.window?.setBackgroundDrawable(ColorDrawable(Color.TRANSPARENT))
+        musiBinding.btnNah.setOnClickListener { dialog.dismiss() }
+        musiBinding.btnGetMusi.setOnClickListener {
+            logEvent("vf_get_vide", "", "")
+            dialog.dismiss()
+            try { startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("market://details?id=green.mobileapps.offlinevideoplayer"))) }
+            catch (e: ActivityNotFoundException) { startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("https://play.google.com/store/apps/details?id=green.mobileapps.offlinevideoplayer"))) }
         }
+        dialog.show()
+    }
+
+    private fun showCutterDialog() {
+        logEvent("sf_cutter_dialog", "", "")
+        val taggerBinding = DialogCutterBinding.inflate(layoutInflater)
+        val dialog = AlertDialog.Builder(this).setView(taggerBinding.root).create()
+        dialog.window?.setBackgroundDrawable(ColorDrawable(Color.TRANSPARENT))
+        taggerBinding.btnNah.setOnClickListener { dialog.dismiss() }
+        taggerBinding.btnGetTagger.setOnClickListener {
+            logEvent("sf_get_cutter", "", "")
+            dialog.dismiss()
+            try { startActivity(Intent(Intent.ACTION_VIEW,
+                "market://details?id=green.mobileapps.clippervideocutter".toUri())) }
+            catch (e: ActivityNotFoundException) { startActivity(Intent(Intent.ACTION_VIEW,
+                "https://play.google.com/store/apps/details?id=green.mobileapps.clippervideocutter".toUri())) }
+        }
+        dialog.show()
+    }
+
+    private fun showRateDialog() {
+        logEvent("sf_rate_dialog", "", "")
+        val rateBinding = DialogRateBinding.inflate(layoutInflater)
+        val dialog = AlertDialog.Builder(this).setView(rateBinding.root).create()
+        dialog.window?.setBackgroundDrawable(ColorDrawable(Color.TRANSPARENT))
+        rateBinding.btnNah.setOnClickListener { dialog.dismiss() }
+        rateBinding.btnRate.setOnClickListener {
+            logEvent("sf_rate_click", "", "")
+            dialog.dismiss()
+            try { startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("market://details?id=$packageName"))) }
+            catch (e: ActivityNotFoundException) { startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("https://play.google.com/store/apps/details?id=$packageName"))) }
+        }
+        dialog.show()
+    }
+
+    private fun showUpgradeDialog() {
+        logEvent("sf_upgrade_show", "", "")
+        val dialogBinding = DialogUpgradeBinding.inflate(layoutInflater)
+        val dialog = AlertDialog.Builder(this).setView(dialogBinding.root).create()
+        dialog.window?.setBackgroundDrawable(ColorDrawable(Color.TRANSPARENT))
+        dialogBinding.btnNah.setOnClickListener { dialog.dismiss() }
+        dialogBinding.btnUpgrade.setOnClickListener {
+            logEvent("sf_upgrade_click", "", "")
+            dialog.dismiss()
+            launchBillingFlow()
+        }
+        dialog.show()
+    }
+
+    private fun logEvent(eventName: String, input_url: String?, more: String?) {
+        val bundle = Bundle()
+        if (input_url != null) bundle.putString("input_url", input_url)
+        if (more != null) bundle.putString("more", more)
+        firebaseAnalytics.logEvent(eventName, bundle)
+        Log.d("Analytics", "Logged event: $eventName")
     }
 
     override fun onItemSelected(parent: AdapterView<*>, view: View?, position: Int, id: Long) {
@@ -1015,12 +1069,7 @@ class MainActivity : AppCompatActivity(), PurchasesUpdatedListener, AdapterView.
 
             MediaManager(this@MainActivity, absFilePath, MIME_MP4).scanMedia()
 
-            prefsManager.incrementTotalRuns()
-            val runs = prefsManager.totalRuns
-
-            if (runs % 3 == 1) {
-                showRateAd()
-            }
+            incrementSuccessfulRuns()
 
             runOnUiThread {
                 Toast.makeText(this@MainActivity, "Download finished!", Toast.LENGTH_SHORT).show()

@@ -80,8 +80,8 @@
     <string name="prefs_key_format_id">FORMAT_ID</string>
     <string name="prefs_key_background_enabled">BACKGROUND_ENABLED</string>
     <string name="title_menu_upgrade">Upgrade</string>
-    <string name="upgrade_body"><![CDATA[✅ \t4K Resolution\n\n✅ \tFastest Speed\n\n✅ \tNo More Ads!]]></string>
-    <string name="inflyer_body"><![CDATA[Try our other app, InFlyer,\nto download links like these.\n\n✦ Ad by Green Mobile ✦]]></string>
+    <string name="upgrade_body"><![CDATA[✅ \t4K Resolution\n\n✅ \tAd-Free]]></string>
+    <string name="inflyer_body"><![CDATA[Try our other app, InSave,\nto download links like these.\n\n✦ Ad by Green Mobile ✦]]></string>
     <string name="get_it">Get It!</string>
     <string name="nah">Nah</string>
     <string name="frag_upgrade_subtitle">Premium Features</string>
@@ -91,5 +91,17 @@
     <string name="frag_upgrade_positive">Get It!</string>
     <string name="paste_url">Paste Link…</string>
     <string name="clear_button">clear button</string>
+    <string name="downloading">Downloading…</string>
+    <string name="album_art">Album Art</string>
+    <string name="loading">Loading…</string>
+    <string name="rate_dialog_body">Should I maintain SaveFrom?\nLet me know!</string>
+    <string name="_3_rate"><![CDATA[💚 Rate]]></string>
+    <string name="upgrade_dialog_title">👑 Upgrade</string>
+    <string name="enable_background">Enable Background</string>
+    <string name="privacy">Privacy</string>
+    <string name="about">About</string>
+    <string name="upgrade">Upgrade</string>
+    <string name="cutter_dialog_body"><![CDATA[Trim your long videos into clips.\n\nAd by Green Mobile <3]]></string>
+    <string name="vide_dialog_body"><![CDATA[Watch your videos, ad-free.\nAnytime, anywhere.\n\nAd by Green Mobile <3]]></string>
 
 </resources>
