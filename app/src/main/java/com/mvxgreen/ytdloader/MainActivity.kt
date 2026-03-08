@@ -552,11 +552,11 @@ class MainActivity : AppCompatActivity(), PurchasesUpdatedListener, AdapterView.
         // resolution spinner
         val resSpinner = findViewById<Spinner>(R.id.res_spinner)
         val resArray = resources.getStringArray(R.array.res_array)
-        val adapter = object : ArrayAdapter<String>(this, android.R.layout.simple_spinner_item, resArray) {
+        val adapter = object : ArrayAdapter<String>(this, R.layout.res_spinner_item, resArray) {
             override fun getDropDownView(position: Int, convertView: View?, parent: ViewGroup): View {
                 val view = super.getDropDownView(position, convertView, parent)
 
-                // 3. Alternate the background based on odd/even positions
+                // Alternate the background based on odd/even positions
                 if (position % 2 == 0) {
                     view.setBackgroundResource(R.drawable.bg_spinner_item)
                 } else {
@@ -566,34 +566,13 @@ class MainActivity : AppCompatActivity(), PurchasesUpdatedListener, AdapterView.
                 return view
             }
         }
-        adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
+        adapter.setDropDownViewResource(R.layout.res_spinner_item)
         resSpinner.adapter = adapter
+
         val sharedPref = getSharedPreferences("SaveFromPrefs", Context.MODE_PRIVATE)
         val selectionIndex = sharedPref.getInt("RES_POSITION", 0)
         resSpinner.setSelection(selectionIndex)
         resSpinner.onItemSelectedListener = this
-
-        // filetype spinner
-        val typeSpinner = findViewById<Spinner>(R.id.type_spinner)
-        val typeArray = resources.getStringArray(R.array.type_array)
-        val typeAdapter = object : ArrayAdapter<String>(this, android.R.layout.simple_spinner_item, typeArray) {
-            override fun getDropDownView(position: Int, convertView: View?, parent: ViewGroup): View {
-                val view = super.getDropDownView(position, convertView, parent)
-
-                // 3. Alternate the background based on odd/even positions
-                if (position % 2 == 0) {
-                    view.setBackgroundResource(R.drawable.bg_spinner_item)
-                } else {
-                    view.setBackgroundResource(R.drawable.bg_spinner_item_alt)
-                }
-
-                return view
-            }
-        }
-        typeAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
-        typeSpinner.adapter = typeAdapter
-        typeSpinner.setSelection(0)
-        typeSpinner.onItemSelectedListener = this
 
         if (!isBackgroundEnabled) {
             Log.i(TAG, "showing permission holder")
@@ -805,6 +784,7 @@ class MainActivity : AppCompatActivity(), PurchasesUpdatedListener, AdapterView.
                 binding.shareBtn.alpha = 0.0f
 
                 binding.resSpinner.visibility = View.VISIBLE
+                binding.resSpinner.isEnabled = true
 
                 Glide.with(this@MainActivity)
                     .load(prefsManager.thumbnailUrl)
@@ -829,6 +809,8 @@ class MainActivity : AppCompatActivity(), PurchasesUpdatedListener, AdapterView.
                 binding.dlBtn.visibility = View.INVISIBLE
                 binding.etMainInput.isEnabled = false
 
+                binding.resSpinner.isEnabled = false
+
                 binding.btnPaste.isEnabled = false
                 binding.btnPaste.alpha = 0.5f
                 binding.shareBtn.visibility = View.INVISIBLE
@@ -840,6 +822,7 @@ class MainActivity : AppCompatActivity(), PurchasesUpdatedListener, AdapterView.
                 binding.overlayDownloading.visibility = View.INVISIBLE
 
                 binding.resSpinner.visibility = View.GONE
+                binding.resSpinner.isEnabled = true
 
                 binding.shareBtn.visibility = View.VISIBLE
                 binding.shareBtn.animate().alpha(1.0f)
