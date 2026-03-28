@@ -116,6 +116,8 @@ class PrefsManager(ctx: Context) {
             }
         }
 
+    var downloadUrl = ""
+
     var thumbnailUrl: String?
         /**
          * @return filepath for new file

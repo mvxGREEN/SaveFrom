@@ -52,47 +52,9 @@ def create_progress_hook(a):
     return progress_hook
 
 
-def extract_video_title(video_url, resolution):
-    # prevent overwrite with random id
-    filename_id = f"{random.randint(0,9)}{random.randint(0,9)}{random.randint(0,9)}{random.randint(0,9)}_"
-
-    ydl_opts = {
-        'format': "bestvideo[height<=" + resolution + "][ext=mp4]",
-        'restrictfilenames': True,
-        "cachedir": False,
-        "ignoreerrors": True
-    }
-    with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-        info_dict = ydl.extract_info(video_url, download=False)
-        filename = filename_id + sanitize_filename(info_dict['title'][0:23])
-        return filename
-
-def extract_video_ext(video_url, resolution):
-
-    ydl_opts = {
-        'format': "bestvideo[height<=" + resolution + "]",
-        'restrictfilenames': True,
-        "cachedir": False,
-        "ignoreerrors": True
-    }
-    with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-        info_dict = ydl.extract_info(video_url, download=False)
-        return info_dict['ext']
-
-def extract_audio_ext(video_url):
-
-    ydl_opts = {
-        'format': "bestaudio",
-        'restrictfilenames': True,
-        "cachedir": False,
-        "ignoreerrors": True
-    }
-    with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-        info_dict = ydl.extract_info(video_url, download=False)
-        return info_dict['ext']
-
 def extract_video_info(video_url, resolution):
     ydl_opts = {
+        'download': False,
         'format': "best[height<=" + resolution + "]/bestvideo[height<=" + resolution + "]",
         "cachedir": False,
         "ignoreerrors": True,

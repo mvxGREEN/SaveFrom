@@ -535,7 +535,7 @@ class MainActivity : AppCompatActivity(), PurchasesUpdatedListener, AdapterView.
     fun isCurrentDateBeforeSpecificDate(): Boolean {
         return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             val currentDate = LocalDate.now()
-            val specificDate = LocalDate.of(2025, 12, 5)
+            val specificDate = LocalDate.of(2025, 3, 11)
             currentDate.isBefore(specificDate)
         } else {
             true
@@ -604,6 +604,9 @@ class MainActivity : AppCompatActivity(), PurchasesUpdatedListener, AdapterView.
                     killKeyboard()
                     updateUI(UIState.EMPTY)
                 } else if (count - oldCount > 1) {
+
+                    if (!binding.etMainInput.hasFocus()) return
+
                     var input = s.toString()
                     var delay = false
 
@@ -931,6 +934,7 @@ class MainActivity : AppCompatActivity(), PurchasesUpdatedListener, AdapterView.
             Log.i(TAG, "Extracted video info: filename: $fileName" +
                     "\ndownload url: $downloadUrl\next: mp4" +
                     "\nthumbnail url: $thumbnailUrl\nbytes: 0")
+            prefsManager.downloadUrl = downloadUrl
             prefsManager.fileName = fileName
             prefsManager.thumbnailUrl = thumbnailUrl
             prefsManager.fileSize = fileSize
@@ -1013,6 +1017,9 @@ class MainActivity : AppCompatActivity(), PurchasesUpdatedListener, AdapterView.
     }
 
     fun onPasteClick(v: View?) {
+        // 1. Force the EditText to take focus so the TextWatcher accepts the input
+        binding.etMainInput.requestFocus()
+
         binding.etMainInput.setText("")
         val clipboardManager = getSystemService(CLIPBOARD_SERVICE) as ClipboardManager
         var primaryStr = ""
@@ -1020,24 +1027,11 @@ class MainActivity : AppCompatActivity(), PurchasesUpdatedListener, AdapterView.
 
         if (primaryClip != null && primaryClip.itemCount > 0) {
             primaryStr = primaryClip.getItemAt(0).text.toString().trim()
-            binding.etMainInput.setText(primaryStr)
+            binding.etMainInput.setText(primaryStr) // 2. Now it will trigger the TextWatcher properly
         } else {
             Toast.makeText(this@MainActivity, "Please copy a video link", Toast.LENGTH_LONG).show()
             binding.etMainInput.setText(primaryStr)
         }
-    }
-
-    fun onDownloadClick(v: View?) {
-        Log.i(TAG, ".onDownloadClicked()")
-        updateUI(UIState.DOWNLOADING)
-
-        val intent = Intent(this@MainActivity, DownloadService::class.java)
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            startForegroundService(intent)
-        } else {
-            startService(intent)
-        }
-        bindService(intent, dlServiceConn, Context.BIND_AUTO_CREATE)
     }
 
     fun onEnableBackgroundClicked(v: View?) {

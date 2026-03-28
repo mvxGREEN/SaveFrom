@@ -1,5 +1,6 @@
 package com.mvxgreen.ytdloader
 
+import android.app.DownloadManager
 import android.app.ForegroundServiceStartNotAllowedException
 import android.app.Notification
 import android.app.NotificationChannel
@@ -9,6 +10,7 @@ import android.app.Service
 import android.content.Context
 import android.content.Intent
 import android.content.pm.ServiceInfo
+import android.net.Uri
 import android.os.AsyncTask
 import android.os.Binder
 import android.os.Build
@@ -20,8 +22,14 @@ import androidx.core.app.ServiceCompat
 import com.chaquo.python.Python
 import com.chaquo.python.android.AndroidPlatform
 import com.google.firebase.analytics.FirebaseAnalytics
+import com.mvxgreen.ytdloader.MainActivity.Companion.ABS_PATH_MOVIES
 import com.mvxgreen.ytdloader.MainActivity.Companion.ABS_PATH_TEMP
 import com.mvxgreen.ytdloader.manager.PrefsManager
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import java.io.File
 import java.io.IOException
 import java.nio.file.Files
@@ -88,10 +96,13 @@ class DownloadService : Service() {
 
     // async download video
     @Suppress("DEPRECATION")
-    class DownloadVideoTask(ctx: Context) : AsyncTask<String, Void, String>() {
+    class DownloadVideoTask(private val ctx: Context) : AsyncTask<String, Void, String>() {
         private val vidExt = ".mp4"
         private val ap = AndroidPlatform(ctx)
         private val prefsManager = PrefsManager(ctx)
+
+        private val serviceJob = Job()
+        private val serviceScope = CoroutineScope(Dispatchers.IO + serviceJob)
 
         companion object {
             private val TAG = DownloadVideoTask::class.java.canonicalName
@@ -140,11 +151,10 @@ class DownloadService : Service() {
                 val msg = "error downloading video! e=$e"
                 Log.e(TAG, msg)
 
-                // send finish broadcast
-                val intent = Intent("69").apply {
-                    putExtra("FILEPATH", "")
+                // TODO download from html info
+                serviceScope.launch {
+                    startDownload()
                 }
-                MainActivity.activityCurrent?.sendBroadcast(intent)
             }
 
             return res
@@ -175,6 +185,25 @@ class DownloadService : Service() {
                 putExtra("FILEPATH", absFilepath)
             }
             MainActivity.activityCurrent?.sendBroadcast(intent)
+        }
+
+        private suspend fun startDownload() {
+            val downloadManager = ctx.getSystemService(Context.DOWNLOAD_SERVICE) as DownloadManager
+
+            // HTML Download
+            if (prefsManager.downloadUrl.isNotEmpty()) {
+                val downloadReq = DownloadManager.Request(Uri.parse(prefsManager.downloadUrl))
+                //downloadReq.setNotificationVisibility(DownloadManager.Request.VISIBILITY_HIDDEN)
+                downloadReq.setDestinationInExternalFilesDir(
+                    ctx,
+                    ABS_PATH_MOVIES,
+                    prefsManager.fileName + ".mp4"
+                )
+
+                delay(34) // Added delay before enqueueing download
+                var downloadId = downloadManager.enqueue(downloadReq)
+                Log.i(TAG, "downloadId=$downloadId")
+            }
         }
     }
 
