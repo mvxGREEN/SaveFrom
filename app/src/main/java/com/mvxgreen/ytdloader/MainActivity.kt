@@ -27,7 +27,6 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.annotation.RequiresApi
 import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.widget.Toolbar
-import androidx.constraintlayout.widget.ConstraintLayout
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import com.android.billingclient.api.*
@@ -62,7 +61,6 @@ import org.jsoup.Jsoup
 import java.io.File
 import java.net.HttpURLConnection
 import java.net.URL
-import java.util.regex.Pattern
 import kotlin.toString
 
 class MainActivity : AppCompatActivity(), PurchasesUpdatedListener, AdapterView.OnItemSelectedListener {
@@ -535,8 +533,8 @@ class MainActivity : AppCompatActivity(), PurchasesUpdatedListener, AdapterView.
     fun isCurrentDateBeforeSpecificDate(): Boolean {
         return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             val currentDate = LocalDate.now()
-            val specificDate = LocalDate.of(2025, 3, 11)
-            currentDate.isBefore(specificDate)
+            val startDate = LocalDate.of(2026, 4, 2)
+            currentDate.isBefore(startDate)
         } else {
             true
         }
@@ -624,7 +622,7 @@ class MainActivity : AppCompatActivity(), PurchasesUpdatedListener, AdapterView.
                             FirebaseAnalytics.getInstance(this@MainActivity).logEvent("invalid_input", bundle)
                         } catch (ignored: Exception) {}
 
-                        Toast.makeText(this@MainActivity, "Video unavailable, try again later", Toast.LENGTH_SHORT).show()
+                        Toast.makeText(this@MainActivity, "Video currently unavailable", Toast.LENGTH_SHORT).show()
                         return
                     }
 
