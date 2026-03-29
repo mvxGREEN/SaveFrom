@@ -13,7 +13,6 @@ import android.widget.Button
 import android.widget.LinearLayout
 import android.widget.RelativeLayout
 import android.widget.TextView
-import com.google.android.gms.ads.AdError
 import com.google.android.gms.ads.AdRequest
 import com.google.android.gms.ads.AdSize
 import com.google.android.gms.ads.AdView
@@ -39,80 +38,6 @@ object AdsManager {
 
     private val ID_INTERSTITIAL = ID_INTER_TEST
     private val ID_BANNER = ID_BANNER_TEST
-
-    /**
-     * Decide which ad to display based on runs
-     * 
-     * @param runs # of runs
-     * @param main main activity
-     */
-    fun showLocalAd(runs: Int, main: MainActivity) {
-        val adIndex = (runs % 9)
-        when (adIndex) {
-            1, 7 -> showRateAd(main)
-            else -> {}
-        }
-    }
-
-    /**
-     * Ask the user to rate the app
-     * @param main main activity
-     */
-    fun showRateAd(main: MainActivity) {
-        Log.i(TAG, "Showing rate ad")
-
-        val appPackageName = main.getApplicationContext().getPackageName()
-
-        val dialog = Dialog(ContextThemeWrapper(main, R.style.DialogDrip))
-        dialog.setTitle(main.getString(R.string.msg_rate_dialog_title))
-
-        val ll = LinearLayout(main)
-        ll.setOrientation(LinearLayout.VERTICAL)
-
-        val tv = TextView(main)
-        val msg = main.getString(R.string.msg_rate_dialog_body)
-        tv.setText(msg)
-        tv.setWidth(280)
-        tv.setPadding(4, 0, 4, 43)
-        tv.setTextAppearance(R.style.TextAppFragBody)
-        tv.setTextAlignment(View.TEXT_ALIGNMENT_CENTER)
-        ll.addView(tv)
-
-        val l2 = LinearLayout(main)
-        l2.setOrientation(LinearLayout.HORIZONTAL)
-        l2.setBottom(ll.getBottom())
-        l2.setForegroundGravity(Gravity.BOTTOM)
-
-        val b3 = Button(ContextThemeWrapper(main, R.style.ButtonDripBad))
-        b3.setText(main.getString(R.string.msg_rate_button2))
-        b3.setOnClickListener(View.OnClickListener { v: View? -> dialog.dismiss() })
-        l2.addView(b3)
-
-        val b1 = Button(ContextThemeWrapper(main, R.style.ButtonDripGood))
-        b1.setText(main.getString(R.string.msg_rate_button1))
-        b1.setOnClickListener(View.OnClickListener { v: View? ->
-            main.startActivity(
-                Intent(
-                    Intent.ACTION_VIEW, Uri.parse(
-                        "market://details?id="
-                                + appPackageName
-                    )
-                )
-            )
-            dialog.dismiss()
-        })
-        l2.addView(b1)
-
-        ll.addView(l2)
-        dialog.setContentView(ll)
-        if (!main.isFinishing()) {
-            try {
-                dialog.show()
-            } catch (e: Exception) {
-                Log.w(TAG, MSG_BAD_TOKEN_EXCEPTION)
-            }
-        }
-    }
 
     /**
      * Ask user to install spotify downloader
