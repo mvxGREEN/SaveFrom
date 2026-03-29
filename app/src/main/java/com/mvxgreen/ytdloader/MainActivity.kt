@@ -152,9 +152,7 @@ class MainActivity : AppCompatActivity(), PurchasesUpdatedListener, AdapterView.
 
         @RequiresApi(api = Build.VERSION_CODES.TIRAMISU)
         val req_permissions = arrayOf(
-            Manifest.permission.READ_MEDIA_IMAGES,
-            Manifest.permission.READ_MEDIA_AUDIO,
-            Manifest.permission.READ_MEDIA_VIDEO,
+            //Manifest.permission.READ_MEDIA_VIDEO,
             Manifest.permission.POST_NOTIFICATIONS
         )
 
