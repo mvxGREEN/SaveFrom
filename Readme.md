@@ -1,6 +1,6 @@
 # SaveFrom-Android 🎥
 
-![Static Badge](https://img.shields.io/badge/build%2C%20passing%2C%20brightgreen)
+[![Build Status](https://img.shields.io/badge/build-passing-brightgreen.svg)](https://github.com/mvxGREEN/Tagger/actions)
 [![License: WTFPL](https://img.shields.io/badge/License-WTFPL-brightgreen.svg)](http://www.wtfpl.net/about/)
 [![Language: Kotlin](https://img.shields.io/badge/Language-Kotlin-purple.svg)](https://kotlinlang.org/)
 [![Platform: Android](https://img.shields.io/badge/Platform-Android-3DDC84.svg)](https://developer.android.com/)
