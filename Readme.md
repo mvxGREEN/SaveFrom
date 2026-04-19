@@ -1,11 +1,13 @@
 # SaveFrom-Android 🎞️⬇️
 
-[![Build Status](https://img.shields.io/badge/Build-Passing-brightgreen.svg)](https://github.com/mvxGREEN/Tagger/actions)
+[![Build Status](https://img.shields.io/badge/Build-Passing-brightgreen.svg)](https://github.com/mvxGREEN/SaveFrom-Android/actions)
 [![License: WTFPL](https://img.shields.io/badge/License-WTFPL-brightgreen.svg)](http://www.wtfpl.net/about/)
 [![Language: Kotlin](https://img.shields.io/badge/Language-Kotlin-purple.svg)](https://kotlinlang.org/)
 [![Platform: Android](https://img.shields.io/badge/Platform-Android-3DDC84.svg)](https://developer.android.com/)
 
-A universal URL-to-MP4 video downloader app for Android, leveraging the renowned `yt-dlp` Python package.
+Universal URL-to-MP4 video downloader app for Android.  
+
+Powered by the renowned `yt-dlp` Python package.
 
 ## ✨ Features
 * **Universal Downloader**: Capable of downloading videos from a vast array of supported platforms (YouTube, TikTok, and hundreds more) directly to your Android device.
