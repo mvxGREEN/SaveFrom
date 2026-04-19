@@ -29,7 +29,7 @@ Powered by an embedded `yt-dlp` Python package.
 
 3. Done!  Open **SaveFrom** app to start downloading videos.
 
-## 💻 Build From Source Code
+## 💻 Build App from Source Code
 
 To build and run this project locally, you will need [Android Studio](https://developer.android.com/studio) installed on your machine.
 
