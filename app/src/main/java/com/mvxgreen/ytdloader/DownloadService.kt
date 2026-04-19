@@ -14,17 +14,14 @@ import android.net.Uri
 import android.os.AsyncTask
 import android.os.Binder
 import android.os.Build
-import android.os.Bundle
 import android.os.IBinder
 import android.util.Log
 import androidx.core.app.NotificationCompat
 import androidx.core.app.ServiceCompat
 import com.chaquo.python.Python
 import com.chaquo.python.android.AndroidPlatform
-import com.google.firebase.analytics.FirebaseAnalytics
 import com.mvxgreen.ytdloader.MainActivity.Companion.ABS_PATH_MOVIES
 import com.mvxgreen.ytdloader.MainActivity.Companion.ABS_PATH_TEMP
-import com.mvxgreen.ytdloader.manager.PrefsManager
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -81,14 +78,6 @@ class DownloadService : Service() {
     }
 
     private fun downloadVideo(url: String) {
-        try {
-            val bundle = Bundle().apply {
-                putString("app_name", "savefrom")
-                putString("url", url)
-            }
-            FirebaseAnalytics.getInstance(this).logEvent("download_start", bundle)
-        } catch (ignored: Exception) {}
-
         MainActivity.activityCurrent?.let {
             DownloadVideoTask(it).execute(url)
         }

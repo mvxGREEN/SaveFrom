@@ -2,11 +2,8 @@ package com.mvxgreen.ytdloader
 
 import android.Manifest
 import android.annotation.SuppressLint
-import android.app.AlertDialog
 import android.content.*
 import android.content.pm.PackageManager
-import android.graphics.Color
-import android.graphics.drawable.ColorDrawable
 import android.media.MediaScannerConnection
 import android.net.Uri
 import android.os.*
@@ -23,34 +20,18 @@ import android.view.animation.AnimationUtils
 import android.view.inputmethod.InputMethodManager
 import android.widget.*
 import androidx.activity.result.contract.ActivityResultContracts
-//import androidx.activity.EdgeToEdge
 import androidx.annotation.RequiresApi
 import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.widget.Toolbar
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
-import com.android.billingclient.api.*
 import com.chaquo.python.Python
 import com.chaquo.python.android.AndroidPlatform
-import com.google.android.gms.ads.MobileAds
-import com.google.android.ump.ConsentInformation
-import com.google.android.ump.ConsentRequestParameters
-import com.google.android.ump.UserMessagingPlatform
-import com.google.common.collect.ImmutableList
-import com.google.firebase.analytics.FirebaseAnalytics
 import com.mvxgreen.ytdloader.databinding.ActivityMainBinding
-import com.mvxgreen.ytdloader.manager.AdsManager
-import com.mvxgreen.ytdloader.manager.PrefsManager
 import java.net.InetAddress
-import java.time.LocalDate
 import androidx.core.net.toUri
 import androidx.lifecycle.lifecycleScope
 import com.bumptech.glide.Glide
-import com.google.firebase.FirebaseApp
-import com.mvxgreen.ytdloader.databinding.DialogCutterBinding
-import com.mvxgreen.ytdloader.databinding.DialogRateBinding
-import com.mvxgreen.ytdloader.databinding.DialogUpgradeBinding
-import com.mvxgreen.ytdloader.databinding.DialogVideBinding
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
@@ -63,8 +44,7 @@ import java.net.HttpURLConnection
 import java.net.URL
 import kotlin.toString
 
-class MainActivity : AppCompatActivity(), PurchasesUpdatedListener, AdapterView.OnItemSelectedListener {
-    private lateinit var firebaseAnalytics: FirebaseAnalytics
+class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
     private var mDownloadService: DownloadService? = null
     lateinit var binding: ActivityMainBinding
     private lateinit var fadeIn: Animation
@@ -106,12 +86,6 @@ class MainActivity : AppCompatActivity(), PurchasesUpdatedListener, AdapterView.
             prepareFileDirs() // Ensure directories exist
         }
 
-    // admob
-    private lateinit var consentInformation: ConsentInformation
-
-    // billing
-    private var billingClient: BillingClient? = null
-
     enum class UIState { EMPTY, LOADING, PREVIEW, DOWNLOADING, FINISHED }
 
     companion object {
@@ -138,12 +112,6 @@ class MainActivity : AppCompatActivity(), PurchasesUpdatedListener, AdapterView.
 
         @JvmField
         var mFileType = "video"
-
-        @JvmField
-        var MIsGold = false
-
-        @JvmField
-        var MBillingFlowParams: BillingFlowParams? = null
 
         val req_permissions_old = arrayOf(
             Manifest.permission.WRITE_EXTERNAL_STORAGE,
@@ -210,10 +178,6 @@ class MainActivity : AppCompatActivity(), PurchasesUpdatedListener, AdapterView.
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        //EdgeToEdge.enable(this)
-        FirebaseApp.initializeApp(this)
-        firebaseAnalytics = FirebaseAnalytics.getInstance(this)
-
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
@@ -241,19 +205,10 @@ class MainActivity : AppCompatActivity(), PurchasesUpdatedListener, AdapterView.
             registerReceiver(mFinishReceiver, IntentFilter("69"))
         }
 
-        // init billing
-        loadBillingClient()
-
-        // init admob
-        loadAdmob()
-
         checkPermissions()
     }
 
     override fun onResume() {
-        if (billingClient != null) {
-            checkSubscriptionStatus()
-        }
         if (!Python.isStarted()) {
             androidPlatform = AndroidPlatform(this)
             Python.start(androidPlatform)
@@ -279,260 +234,11 @@ class MainActivity : AppCompatActivity(), PurchasesUpdatedListener, AdapterView.
         }
     }
 
-    fun onYearlyClick(v: View?) {
-        Log.i(TAG, "onYearlyClick")
-        launchBillingFlow()
-    }
-
-    fun onUpgradeClick(v: View?) {
-        onUpgradeClick()
-    }
-
-    fun onUpgradeClick() {
-        Log.i(TAG, "onUpgradeClick")
-        launchBillingFlow()
-    }
-
-    fun onGetInflyerClick(v: View?) {
-        val playStoreUrl = "https://play.google.com/store/apps/details?id=green.mobileapps.downloader4inflact"
-        val intent = Intent(Intent.ACTION_VIEW)
-        intent.data = Uri.parse(playStoreUrl)
-        startActivity(intent)
-    }
-
-    fun launchBillingFlow() {
-        Log.i(TAG, "launchBillingFlow")
-        MBillingFlowParams?.let { params ->
-            billingClient?.launchBillingFlow(this@MainActivity, params)
-        } ?: Log.e(TAG, "MBillingFlowParams is null")
-    }
-
-    inner class MBillingClientListener : BillingClientStateListener {
-        override fun onBillingServiceDisconnected() {
-            this@MainActivity.establishBillingConnection()
-        }
-
-        override fun onBillingSetupFinished(billingResult: BillingResult) {
-            Log.i(TAG, "onBillingSetupFinished")
-            if (billingResult.responseCode == BillingClient.BillingResponseCode.OK) {
-                Log.i(TAG, "Billing Response Code == OK")
-
-                val queryProductDetailsParams = QueryProductDetailsParams.newBuilder()
-                    .setProductList(
-                        ImmutableList.of(
-                            QueryProductDetailsParams.Product.newBuilder()
-                                .setProductId("savefrom_gold")
-                                .setProductType(BillingClient.ProductType.SUBS)
-                                .build()
-                        )
-                    )
-                    .build()
-
-                billingClient?.queryProductDetailsAsync(queryProductDetailsParams) { result, queryProductDetailsResult ->
-                    Log.i(TAG, "onProductDetailsResponse")
-                    if (result.responseCode == BillingClient.BillingResponseCode.OK) {
-                        Log.i(TAG, "Billing Response Code == OK")
-                        if (queryProductDetailsResult.productDetailsList?.isEmpty() == true) {
-                            Log.e(TAG, "no products found")
-                        }
-                        queryProductDetailsResult.productDetailsList?.forEach { productDetails ->
-                            Log.i(TAG, "found product details")
-
-                            val productDetailsParamsList = ImmutableList.of(
-                                BillingFlowParams.ProductDetailsParams.newBuilder()
-                                    .setProductDetails(productDetails)
-                                    .setOfferToken(productDetails.subscriptionOfferDetails?.get(0)?.offerToken ?: "")
-                                    .build()
-                            )
-
-                            MBillingFlowParams = BillingFlowParams.newBuilder()
-                                .setProductDetailsParamsList(productDetailsParamsList)
-                                .build()
-                        }
-                    } else {
-                        Log.w(TAG, "Billing Response Code != OK")
-                    }
-                }
-
-                checkSubscriptionStatus()
-            }
-        }
-    }
-
-    fun loadBillingClient() {
-        Log.i(TAG, "loadBillingClient")
-        billingClient = BillingClient.newBuilder(this@MainActivity)
-            .setListener(this@MainActivity)
-            .enablePendingPurchases(
-                PendingPurchasesParams.newBuilder()
-                    .enableOneTimeProducts()
-                    .enablePrepaidPlans()
-                    .build()
-            )
-            .build()
-
-        billingClient?.startConnection(MBillingClientListener())
-    }
-
-    fun establishBillingConnection() {
-        billingClient?.startConnection(MBillingClientListener())
-    }
-
-    override fun onPurchasesUpdated(billingResult: BillingResult, purchases: List<Purchase>?) {
-        if (billingResult.responseCode == BillingClient.BillingResponseCode.OK && purchases != null) {
-            for (purchase in purchases) {
-                val purchaseId = purchase.products[0]
-                if (purchaseId == "savefrom_gold") {
-                    if (purchase.purchaseState != Purchase.PurchaseState.PURCHASED) {
-                        Log.w(TAG, "purchase item not purchased")
-                    } else if (!purchase.isAcknowledged) {
-                        Log.i(TAG, "purchase is not yet acknowledged")
-                        handlePurchase(purchase)
-                    }
-                }
-            }
-        } else if (billingResult.responseCode == BillingClient.BillingResponseCode.USER_CANCELED) {
-            Log.i(TAG, "purchase canceled")
-        } else {
-            Log.i(TAG, "no purchases found")
-            val sharedPref = getSharedPreferences("SaveFromPrefs", Context.MODE_PRIVATE)
-            sharedPref.edit().putBoolean("IS_GOLD", false).apply()
-            MIsGold = false
-
-            runOnUiThread {
-                val toolbar = findViewById<Toolbar>(R.id.toolbar)
-                val upgradeItem = toolbar.menu.findItem(R.id.action_upgrade)
-                upgradeItem?.icon = ContextCompat.getDrawable(this@MainActivity, R.drawable.diamond_24)
-            }
-        }
-    }
-
-    fun checkSubscriptionStatus() {
-        val queryPurchasesParams = QueryPurchasesParams.newBuilder()
-            .setProductType(BillingClient.ProductType.SUBS)
-            .build()
-
-        billingClient?.queryPurchasesAsync(queryPurchasesParams) { billingResult, list ->
-            if (billingResult.responseCode == BillingClient.BillingResponseCode.OK) {
-                if (list.isEmpty()) {
-                    Log.i(TAG, "no purchases found")
-                    val sharedPref = getSharedPreferences("SaveFromPrefs", Context.MODE_PRIVATE)
-                    sharedPref.edit().putBoolean("IS_GOLD", false).apply()
-                    MIsGold = false
-
-                    runOnUiThread {
-                        val toolbar = findViewById<Toolbar>(R.id.toolbar)
-                        val upgradeItem = toolbar.menu.findItem(R.id.action_upgrade)
-                        upgradeItem?.icon = ContextCompat.getDrawable(this@MainActivity, R.drawable.diamond_24)
-                    }
-                    return@queryPurchasesAsync
-                }
-
-                for (purchase in list) {
-                    if (purchase.purchaseState != Purchase.PurchaseState.PURCHASED) {
-                        Log.w(TAG, "purchase state is not purchased")
-                        return@queryPurchasesAsync
-                    } else if (!purchase.isAcknowledged) {
-                        handlePurchase(purchase)
-                    } else {
-                        val sharedPref = getSharedPreferences("SaveFromPrefs", Context.MODE_PRIVATE)
-                        sharedPref.edit().putBoolean("IS_GOLD", true).apply()
-                        MIsGold = true
-
-                        binding.bannerContainer.visibility = View.GONE
-
-                        runOnUiThread {
-                            val toolbar = findViewById<Toolbar>(R.id.toolbar)
-                            val upgradeItem = toolbar.menu.findItem(R.id.action_upgrade)
-                            upgradeItem?.icon = ContextCompat.getDrawable(this@MainActivity, R.drawable.diamond_24_gold)
-                        }
-                    }
-                }
-            }
-        }
-    }
-
-    fun handlePurchase(purchase: Purchase) {
-        val acknowledgePurchaseParams = AcknowledgePurchaseParams.newBuilder()
-            .setPurchaseToken(purchase.purchaseToken)
-            .build()
-
-        billingClient?.acknowledgePurchase(acknowledgePurchaseParams) { billingResult ->
-            if (billingResult.responseCode == BillingClient.BillingResponseCode.OK) {
-                Log.i(TAG, "purchase acknowledged")
-                val sharedPref = getSharedPreferences("SaveFromPrefs", Context.MODE_PRIVATE)
-                sharedPref.edit().putBoolean("IS_GOLD", true).apply()
-                MIsGold = true
-                binding.bannerContainer.visibility = View.GONE
-
-                runOnUiThread {
-                    Toast.makeText(this@MainActivity, "Thank you, enjoy! <3", Toast.LENGTH_LONG).show()
-                    val toolbar = findViewById<Toolbar>(R.id.toolbar)
-                    val upgradeItem = toolbar.menu.findItem(R.id.action_upgrade)
-                    upgradeItem?.icon = ContextCompat.getDrawable(this@MainActivity, R.drawable.diamond_24_gold)
-                    updateUI(UIState.EMPTY)
-                }
-            }
-        }
-    }
-
-    fun loadAdmob() {
-        val params = ConsentRequestParameters.Builder().build()
-        consentInformation = UserMessagingPlatform.getConsentInformation(this)
-
-        consentInformation.requestConsentInfoUpdate(
-            this,
-            params,
-            {
-                UserMessagingPlatform.loadAndShowConsentFormIfRequired(this) { loadAndShowError ->
-                    if (loadAndShowError != null) {
-                        Log.w(TAG, "${loadAndShowError.errorCode}: ${loadAndShowError.message}")
-                    }
-
-                    if (consentInformation.canRequestAds() && !MIsGold) {
-                        MobileAds.initialize(this) {}
-                        binding.bannerContainer.visibility = View.VISIBLE
-                        AdsManager.loadAdmobInterstitialAd(this@MainActivity)
-                        AdsManager.loadBanner(this@MainActivity, binding)
-                    }
-
-                    if (isPrivacyOptionsRequired()) {
-                        invalidateOptionsMenu()
-                    }
-                }
-            },
-            { requestConsentError ->
-                Log.w(TAG, "${requestConsentError.errorCode}: ${requestConsentError.message}")
-            }
-        )
-
-        if (consentInformation.canRequestAds() && !MIsGold) {
-            MobileAds.initialize(this) {}
-            binding.bannerContainer.visibility = View.VISIBLE
-            AdsManager.loadAdmobInterstitialAd(this@MainActivity)
-            AdsManager.loadBanner(this@MainActivity, binding)
-        }
-    }
-
-    fun isPrivacyOptionsRequired(): Boolean {
-        return consentInformation.privacyOptionsRequirementStatus == ConsentInformation.PrivacyOptionsRequirementStatus.REQUIRED
-    }
-
     private fun hasNotificationPermission(): Boolean {
         return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
             ActivityCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED
         ) {
             false
-        } else {
-            true
-        }
-    }
-
-    fun isCurrentDateBeforeSpecificDate(): Boolean {
-        return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            val currentDate = LocalDate.now()
-            val startDate = LocalDate.of(2026, 4, 2)
-            currentDate.isBefore(startDate)
         } else {
             true
         }
@@ -604,23 +310,9 @@ class MainActivity : AppCompatActivity(), PurchasesUpdatedListener, AdapterView.
                     if (!binding.etMainInput.hasFocus()) return
 
                     var input = s.toString()
-                    var delay = false
 
-                    if (input.contains("youtube.com") || input.contains("youtu.be")) {
-                        delay = isCurrentDateBeforeSpecificDate()
-                        Log.i(TAG, "delay=$delay")
-                    }
-
-                    if (!input.contains("https://") || delay) {
-                        try {
-                            val bundle = Bundle().apply {
-                                putString("app_name", "savefrom")
-                                putString("input", input)
-                            }
-                            FirebaseAnalytics.getInstance(this@MainActivity).logEvent("invalid_input", bundle)
-                        } catch (ignored: Exception) {}
-
-                        Toast.makeText(this@MainActivity, "Video currently unavailable", Toast.LENGTH_SHORT).show()
+                    if (!input.contains("https://")) {
+                        Toast.makeText(this@MainActivity, "Please copy a valid URL", Toast.LENGTH_SHORT).show()
                         return
                     }
 
@@ -633,14 +325,6 @@ class MainActivity : AppCompatActivity(), PurchasesUpdatedListener, AdapterView.
                     if (domain.contains("/")) {
                         domain = domain.substring(0, domain.indexOf("/"))
                     }
-                    try {
-                        val bundle = Bundle().apply {
-                            putString("app_name", "savefrom")
-                            putString("input", input)
-                            putString("domain", domain)
-                        }
-                        FirebaseAnalytics.getInstance(this@MainActivity).logEvent("valid_input", bundle)
-                    } catch (ignored: Exception) {}
 
                     killKeyboard()
                     updateUI(UIState.LOADING)
@@ -693,10 +377,6 @@ class MainActivity : AppCompatActivity(), PurchasesUpdatedListener, AdapterView.
 
     override fun onOptionsItemSelected(item: MenuItem): Boolean {
         return super.onOptionsItemSelected(item)
-    }
-
-    fun onUpgradeClick(menuItem: MenuItem) {
-        showUpgradeDialog()
     }
 
     fun onAboutClick(menuItem: MenuItem) {
@@ -792,9 +472,6 @@ class MainActivity : AppCompatActivity(), PurchasesUpdatedListener, AdapterView.
 
                 binding.previewTitle.text = prefsManager.fileName
                 binding.previewSubtitle.text = prefsManager.fileSize
-
-                // Show Interstitial if not Gold
-                AdsManager.showInterstitialAd(this)
             }
             UIState.DOWNLOADING -> {
                 Log.d("MainActivity", "sf_ui_downloading")
@@ -1054,93 +731,12 @@ class MainActivity : AppCompatActivity(), PurchasesUpdatedListener, AdapterView.
         val currentCount = prefs.getInt("SUCCESS_RUNS", 0) + 1
         prefs.edit().putInt("SUCCESS_RUNS", currentCount).apply()
         Log.i(TAG, "successful runs count: $currentCount")
-        if (currentCount > 0) {
-            Log.i(TAG, "showing a dialog: $currentCount")
-            // skip if gold
-            if(MIsGold) {
-                Log.i("MainActivity", "is gold, skipping dialog")
-            } else {
-                val cycleCount = currentCount % 4
-                Log.i(TAG, "cycle count: $cycleCount")
-                if (cycleCount == 1) {
-                    showUpgradeDialog()
-                } else if (cycleCount == 2) {
-                    showVideDialog()
-                } else if (cycleCount == 3) {
-                    showRateDialog()
-                } else {
-                    showCutterDialog()
-                }
-            }
-        }
-    }
-
-    private fun showVideDialog() {
-        logEvent("sf_vide_dialog", "", "")
-        val musiBinding = DialogVideBinding.inflate(layoutInflater)
-        val dialog = AlertDialog.Builder(this).setView(musiBinding.root).create()
-        dialog.window?.setBackgroundDrawable(ColorDrawable(Color.TRANSPARENT))
-        musiBinding.btnNah.setOnClickListener { dialog.dismiss() }
-        musiBinding.btnGetMusi.setOnClickListener {
-            logEvent("vf_get_vide", "", "")
-            dialog.dismiss()
-            try { startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("market://details?id=green.mobileapps.offlinevideoplayer"))) }
-            catch (e: ActivityNotFoundException) { startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("https://play.google.com/store/apps/details?id=green.mobileapps.offlinevideoplayer"))) }
-        }
-        dialog.show()
-    }
-
-    private fun showCutterDialog() {
-        logEvent("sf_cutter_dialog", "", "")
-        val taggerBinding = DialogCutterBinding.inflate(layoutInflater)
-        val dialog = AlertDialog.Builder(this).setView(taggerBinding.root).create()
-        dialog.window?.setBackgroundDrawable(ColorDrawable(Color.TRANSPARENT))
-        taggerBinding.btnNah.setOnClickListener { dialog.dismiss() }
-        taggerBinding.btnGetTagger.setOnClickListener {
-            logEvent("sf_get_cutter", "", "")
-            dialog.dismiss()
-            try { startActivity(Intent(Intent.ACTION_VIEW,
-                "market://details?id=green.mobileapps.clippervideocutter".toUri())) }
-            catch (e: ActivityNotFoundException) { startActivity(Intent(Intent.ACTION_VIEW,
-                "https://play.google.com/store/apps/details?id=green.mobileapps.clippervideocutter".toUri())) }
-        }
-        dialog.show()
-    }
-
-    private fun showRateDialog() {
-        logEvent("sf_rate_dialog", "", "")
-        val rateBinding = DialogRateBinding.inflate(layoutInflater)
-        val dialog = AlertDialog.Builder(this).setView(rateBinding.root).create()
-        dialog.window?.setBackgroundDrawable(ColorDrawable(Color.TRANSPARENT))
-        rateBinding.btnNah.setOnClickListener { dialog.dismiss() }
-        rateBinding.btnRate.setOnClickListener {
-            logEvent("sf_rate_click", "", "")
-            dialog.dismiss()
-            try { startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("market://details?id=$packageName"))) }
-            catch (e: ActivityNotFoundException) { startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("https://play.google.com/store/apps/details?id=$packageName"))) }
-        }
-        dialog.show()
-    }
-
-    private fun showUpgradeDialog() {
-        logEvent("sf_upgrade_show", "", "")
-        val dialogBinding = DialogUpgradeBinding.inflate(layoutInflater)
-        val dialog = AlertDialog.Builder(this).setView(dialogBinding.root).create()
-        dialog.window?.setBackgroundDrawable(ColorDrawable(Color.TRANSPARENT))
-        dialogBinding.btnNah.setOnClickListener { dialog.dismiss() }
-        dialogBinding.btnUpgrade.setOnClickListener {
-            logEvent("sf_upgrade_click", "", "")
-            dialog.dismiss()
-            launchBillingFlow()
-        }
-        dialog.show()
     }
 
     private fun logEvent(eventName: String, input_url: String?, more: String?) {
         val bundle = Bundle()
         if (input_url != null) bundle.putString("input_url", input_url)
         if (more != null) bundle.putString("more", more)
-        firebaseAnalytics.logEvent(eventName, bundle)
         Log.d("Analytics", "Logged event: $eventName")
     }
 

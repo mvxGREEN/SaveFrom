@@ -3,25 +3,6 @@
     xmlns:app="http://schemas.android.com/apk/res-auto">
 
     <item
-        android:id="@+id/action_upgrade"
-        android:orderInCategory="1"
-        android:title="@string/title_menu_upgrade"
-        android:icon="@drawable/diamond_24"
-        app:showAsAction="ifRoom"
-        android:onClick="onUpgradeClick" />
-    <item
-        android:id="@+id/action_upgrade_text"
-        android:orderInCategory="2"
-        android:title="@string/title_menu_upgrade"
-        app:showAsAction="never"
-        android:onClick="onUpgradeClick" />
-    <item
-        android:id="@+id/action_rate"
-        android:orderInCategory="99"
-        android:title="@string/title_menu_rate"
-        app:showAsAction="never"
-        android:onClick="onRateClick" />
-    <item
         android:id="@+id/action_about"
         android:orderInCategory="100"
         android:title="@string/title_menu_about"
