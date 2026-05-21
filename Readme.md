@@ -2,7 +2,7 @@
   <img src="assets/launcher_savefrom_round.png" alt="SaveFrom Round App Icon" width="180"/>
 </p>
 
-# SaveFrom 🎞️⬇️
+# SaveFrom ⬇️🎞️
 
 <a href="https://apps.obtainium.imranr.dev/redirect.html?r=obtainium://add/https://github.com/mvxGREEN/VscoLoader">
     <img src="https://raw.githubusercontent.com/ImranR98/Obtainium/main/assets/graphics/badge_obtainium.png" width="200" alt="Get it from Obtainium">
