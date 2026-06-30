@@ -30,7 +30,9 @@ import com.chaquo.python.android.AndroidPlatform
 import com.mvxgreen.ytdloader.databinding.ActivityMainBinding
 import java.net.InetAddress
 import androidx.core.net.toUri
+import androidx.lifecycle.ViewModel
 import androidx.lifecycle.lifecycleScope
+import androidx.lifecycle.viewModelScope
 import com.bumptech.glide.Glide
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -43,6 +45,46 @@ import java.io.File
 import java.net.HttpURLConnection
 import java.net.URL
 import kotlin.toString
+import com.google.gson.annotations.SerializedName
+import retrofit2.Response
+import retrofit2.Retrofit
+import retrofit2.converter.gson.GsonConverterFactory
+import retrofit2.http.Body
+import retrofit2.http.POST
+import kotlin.text.toDouble
+
+// post payload
+data class StreamingRequest(
+    val filecode: String,
+    val device: String
+)
+
+// post response
+data class StreamingResponse(
+    @SerializedName("streaming_url")
+    val streamingUrl: String,
+    val thumbnail: String
+)
+
+interface ApiService {
+    // Replace with your actual URL path (e.g., "media/stream")
+    @POST("https://vidara.to/api/stream")
+    suspend fun requestStream(@Body payload: StreamingRequest): Response<StreamingResponse>
+}
+
+object RetrofitClient {
+    // The base URL must end in a slash.
+    // Since you used a full URL in your @POST annotation, Retrofit will safely override this anyway.
+    private const val BASE_URL = "https://vidara.to/"
+
+    val apiService: ApiService by lazy {
+        Retrofit.Builder()
+            .baseUrl(BASE_URL)
+            .addConverterFactory(GsonConverterFactory.create())
+            .build()
+            .create(ApiService::class.java)
+    }
+}
 
 class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
     private var mDownloadService: DownloadService? = null
@@ -515,45 +557,9 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
         var bytesStr = ""
 
         lifecycleScope.launch {
-            val py = Python.getInstance()
-            val pyObject = py.getModule("vidloader")
 
-            try {
-                val res = pyObject.callAttr("extract_video_info", url, mResolution.replace("\\D".toRegex(), "")).toString()
-                titleStr = res.substringBefore("|||")
-
-                // trim title to 25 characters
-                if (titleStr.length > 25) {
-                    titleStr = titleStr.substring(0, 25)
-                }
-
-                var thumbAndBytesStr = res.substringAfter("|||")
-
-                thumbStr = thumbAndBytesStr.substringBeforeLast("|||")
-                thumbStr = thumbStr.replace("|", "")
-
-                bytesStr = thumbAndBytesStr.substringAfterLast("|||")
-                bytesStr = bytesStr.replace("|", "")
-                if (bytesStr != "0") {
-                    bytesStr = Formatter.formatFileSize(this@MainActivity, bytesStr.toLong()).toString()
-                } else {
-                    bytesStr = ""
-                }
-
-                extStr = "mp4"
-
-                Log.i(TAG, "Extracted video info: filename: $titleStr\next: $extStr" +
-                        "\nthumbnail url: $thumbStr\nbytes: $bytesStr")
-
-                prefsManager.fileName = titleStr
-                prefsManager.thumbnailUrl = thumbStr
-                prefsManager.fileSize = bytesStr
-                prefsManager.fileExt = extStr
-
-                updateUI(UIState.PREVIEW)
-            } catch (e: Exception) {
-                Log.e(TAG, e.toString())
-
+            if (url.contains("https://xca")) {
+                Log.i(TAG, "bypassing ytdlp")
                 // try extracting info from HTML
                 val success = loadHtml(url)
                 if (success) {
@@ -564,12 +570,68 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
                         updateUI(UIState.EMPTY)
                     }
                 }
+            } else {
+                // use ytdlp
+                val py = Python.getInstance()
+                val pyObject = py.getModule("vidloader")
+
+                try {
+                    val res = pyObject.callAttr("extract_video_info", url, mResolution.replace("\\D".toRegex(), "")).toString()
+                    titleStr = res.substringBefore("|||")
+
+                    // trim title to 25 characters
+                    if (titleStr.length > 25) {
+                        titleStr = titleStr.substring(0, 25)
+                    }
+
+                    var thumbAndBytesStr = res.substringAfter("|||")
+
+                    thumbStr = thumbAndBytesStr.substringBeforeLast("|||")
+                    thumbStr = thumbStr.replace("|", "")
+
+                    bytesStr = thumbAndBytesStr.substringAfterLast("|||")
+                    bytesStr = bytesStr.replace("|", "")
+                    if (bytesStr != "0") {
+                        bytesStr = Formatter.formatFileSize(this@MainActivity, bytesStr.toLong()).toString()
+                    } else {
+                        bytesStr = ""
+                    }
+
+                    extStr = "mp4"
+
+                    Log.i(TAG, "Extracted video info: filename: $titleStr\next: $extStr" +
+                            "\nthumbnail url: $thumbStr\nbytes: $bytesStr")
+
+                    prefsManager.fileName = titleStr
+                    prefsManager.thumbnailUrl = thumbStr
+                    prefsManager.fileSize = bytesStr
+                    prefsManager.fileExt = extStr
+
+                    updateUI(UIState.PREVIEW)
+                } catch (e: Exception) {
+                    Log.e(TAG, e.toString())
+
+                    // try extracting info from HTML
+                    val success = loadHtml(url)
+                    if (success) {
+                        updateUI(UIState.PREVIEW)
+                    } else {
+                        runOnUiThread {
+                            Toast.makeText(this@MainActivity, "error loading, please try again", Toast.LENGTH_SHORT).show()
+                            updateUI(UIState.EMPTY)
+                        }
+                    }
+                }
             }
         }
     }
 
+
+
     suspend fun loadHtml(url: String): Boolean = withContext(Dispatchers.IO) {
-        Log.i("loadHtml", "starting loadHtml")
+        Log.i("loadHtml", "starting loadHtml: $url")
+        // clear previous chunks
+        prefsManager.chunkUrlsList = ""
 
         delay(34) // Added network delay
 
@@ -593,8 +655,78 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
             thumbnailUrl = doc.select("meta[property=og:image]")
                 .attr("content")
 
-            // extract download url
-            downloadUrl = getFirstMp4Url(html) ?: ""
+            // extract vidara id if present
+            if (html.contains("vidara.to")) {
+                // extract vidara ID
+                val startInd = html.indexOf("vidara.to")
+                val endInd = html.indexOf('"', startInd)
+                val vidaraUrl = "https://" + html.substring(startInd, endInd)
+
+                Log.i(TAG, "extracted vidara url: $vidaraUrl")
+
+                var streamingUrl = ""
+
+                // 1. Extract the filecode from the vidaraUrl.
+                val extractedFilecode = vidaraUrl.substringAfterLast("/").substringBefore(".")
+
+                // 2. Prepare the POST payload
+                val requestPayload = StreamingRequest(
+                    filecode = extractedFilecode,
+                    device = "web"
+                )
+
+                try {
+                    // 3. Execute the POST request synchronously (safe here because we are in Dispatchers.IO)
+                    val apiResponse = RetrofitClient.apiService.requestStream(requestPayload)
+
+                    if (apiResponse.isSuccessful) {
+                        val responseBody = apiResponse.body()
+                        if (responseBody != null && responseBody.streamingUrl.isNotEmpty()) {
+
+                            streamingUrl = responseBody.streamingUrl
+
+                            thumbnailUrl = responseBody.thumbnail
+
+                            // extract master m3u url
+                            var m3uResponse = loadNetworkResponse(streamingUrl)
+
+                            Log.i(TAG, "Master M3U response:\n$m3uResponse")
+
+                            // extract index m3u url
+                            if (m3uResponse.contains("index_")) {
+                                val indexUrlEnd = m3uResponse.substringAfterLast("index_")
+                                streamingUrl = streamingUrl.substringBeforeLast("/") + "/index_" + indexUrlEnd
+
+                                Log.i(TAG, "index streaming url: $streamingUrl")
+
+                                var m3uResponse = loadNetworkResponse(streamingUrl)
+
+                                Log.i(TAG, "Index M3U response:\n$m3uResponse")
+
+                                // extract chunk urls
+                                val urls = extractMp4Urls(m3uResponse, streamingUrl)
+                                Log.i(TAG, "extracted chunk urls: ${urls.size}")
+
+                                if (urls.isNotEmpty()) {
+                                    prefsManager.chunkUrlsList = urls.joinToString("|||")
+                                    Log.i(TAG, "Saved ${urls.size} chunk URLs to PrefsManager")
+                                }
+                            }
+                        } else {
+                            Log.e(TAG, "POST successful, but streaming_url was empty or null.")
+                        }
+                    } else {
+                        val errorBody = apiResponse.errorBody()?.string()
+                        Log.e(TAG, "POST API Error ${apiResponse.code()}: $errorBody")
+                    }
+                } catch (e: Exception) {
+                    Log.e(TAG, "Network exception occurred during POST request", e)
+                }
+
+            } else {
+                // extract MP4 url
+                downloadUrl = getFirstMp4Url(html) ?: ""
+            }
 
             // check for rnd parameter (ex. thisvid.com)
             if (html.contains("rnd: ")) {
@@ -618,6 +750,15 @@ class MainActivity : AppCompatActivity(), AdapterView.OnItemSelectedListener {
             Log.e("loadHtml", "Exception: ${e.message}")
             return@withContext false
         }
+    }
+
+    suspend fun extractMp4Urls(m3uResponse: String, streamingUrl: String): List<String> = withContext(Dispatchers.IO) {
+        val urls = mutableListOf<String>()
+        val prependStr = streamingUrl.substringBeforeLast("/") + "/"
+        m3uResponse.lineSequence().forEach { line ->
+            if (line.startsWith("seg_")) urls.add(prependStr + line)
+        }
+        return@withContext urls
     }
 
     fun getFirstMp4Url(html: String): String? {

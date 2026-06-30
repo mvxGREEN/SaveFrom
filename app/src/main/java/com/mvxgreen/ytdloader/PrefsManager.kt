@@ -67,6 +67,16 @@ class PrefsManager(ctx: Context) {
 
     // ~~~~~~~~~~~~~~~~~~~~~~~~  GETTERS/SETTERS  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
+    var chunkUrlsList: String?
+        get() = sharedPrefs!!.getString("CHUNK_URLS", "")
+        set(value) {
+            val key = "CHUNK_URLS"
+            Log.i(TAG, "set $key in shared prefs: {$key,$value}")
+            sharedPrefs!!.edit {
+                putString(key, value)
+            }
+        }
+
     var backgroundEnabled: String?
         get() = sharedPrefs!!.getString("BACKGROUND_ENABLED", "")
         set(value) {

@@ -28,7 +28,10 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import java.io.File
+import java.io.FileOutputStream
 import java.io.IOException
+import java.net.HttpURLConnection
+import java.net.URL
 import java.nio.file.Files
 import java.nio.file.attribute.FileTime
 
@@ -65,8 +68,20 @@ class DownloadService : Service() {
         mPrefsManager = PrefsManager(applicationContext)
         registerNotification()
 
-        // start download
-        downloadVideo(mPrefsManager.originalUrl!!)
+        val chunkUrlsStr = mPrefsManager.chunkUrlsList ?: ""
+
+        if (chunkUrlsStr.isNotEmpty()) {
+            val chunkUrls = chunkUrlsStr.split("|||")
+            Log.i(TAG, "Found ${chunkUrls.size} chunk URLs. Starting chunk downloader.")
+
+            // Launch in IO thread
+            CoroutineScope(Dispatchers.IO).launch {
+                downloadChunksAndMerge(chunkUrls)
+            }
+        } else {
+            // start download if no chunk urls
+            downloadVideo(mPrefsManager.originalUrl!!)
+        }
 
         return START_STICKY
     }
@@ -80,6 +95,54 @@ class DownloadService : Service() {
     private fun downloadVideo(url: String) {
         MainActivity.activityCurrent?.let {
             DownloadVideoTask(it).execute(url)
+        }
+    }
+
+    private suspend fun downloadChunksAndMerge(chunkUrls: List<String>) {
+        val fileName = mPrefsManager.fileName ?: "downloaded_video"
+        // Use the existing temporary directory
+        val tempFile = File(MainActivity.ABS_PATH_TEMP, "$fileName.mp4")
+
+        try {
+            // Use true to enable "append" mode in FileOutputStream
+            FileOutputStream(tempFile, true).use { output ->
+
+                for ((index, urlStr) in chunkUrls.withIndex()) {
+                    val url = URL(urlStr)
+                    val connection = url.openConnection() as HttpURLConnection
+                    connection.connectTimeout = 10000
+                    connection.readTimeout = 10000
+                    connection.connect()
+
+                    if (connection.responseCode == 200) {
+                        connection.inputStream.use { input ->
+                            input.copyTo(output)
+                        }
+                    } else {
+                        Log.e(TAG, "Failed to download chunk $index, HTTP Code: ${connection.responseCode}")
+                    }
+
+                    connection.disconnect()
+
+                    // Calculate progress and update the notification
+                    val progress = ((index + 1) * 100) / chunkUrls.size
+                    setProgress(100, progress)
+
+                    // Update MainActivity UI progress directly
+                    MainActivity.setProgress("$progress")
+                }
+            }
+
+            Log.i(TAG, "All chunks downloaded and merged successfully: ${tempFile.absolutePath}")
+
+            // Send broadcast to MainActivity's FinishReceiver to handle moving to Movies folder
+            val finishIntent = Intent("69").apply {
+                putExtra("FILEPATH", tempFile.absolutePath)
+            }
+            MainActivity.activityCurrent?.sendBroadcast(finishIntent)
+
+        } catch (e: Exception) {
+            Log.e(TAG, "Exception occurred while downloading and merging chunks", e)
         }
     }
 

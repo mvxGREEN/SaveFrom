@@ -9,12 +9,6 @@
         app:showAsAction="never"
         android:onClick="onAboutClick"/>
     <item
-        android:id="@+id/action_pp"
-        android:orderInCategory="101"
-        android:title="@string/title_menu_pp"
-        app:showAsAction="never"
-        android:onClick="onPrivacyClick" />
-    <item
         android:id="@+id/action_privacy_settings"
         android:orderInCategory="102"
         android:title="@string/title_privacy_settings"
